@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 type Client struct {
@@ -16,7 +17,9 @@ func NewClient(baseURL, cookies string) *Client {
 	return &Client{
 		baseURL: baseURL,
 		cookies: cookies,
-		client:  &http.Client{},
+		client: &http.Client{
+			Timeout: 30 * time.Second,
+		},
 	}
 }
 
