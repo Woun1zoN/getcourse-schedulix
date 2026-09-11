@@ -1,0 +1,4 @@
+.git
+.env
+state.json
+*.md

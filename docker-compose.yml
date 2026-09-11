@@ -1,0 +1,11 @@
+services:
+  schedule-bot:
+    build: .
+    container_name: schedule-bot
+    restart: unless-stopped
+  
+    env_file:
+      - .env
+  
+    volumes:
+      - ./state.json:/app/state.json
