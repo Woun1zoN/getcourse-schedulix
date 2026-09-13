@@ -49,11 +49,7 @@ func main() {
 	}
 }
 
-func runOnce(
-	client *getcourse.Client,
-	state *storage.State,
-	telegramClient *telegram.Client,
-) error {
+func runOnce(client *getcourse.Client, state *storage.State, telegramClient *telegram.Client) error {
 	lessonIDs, err := client.GetLessonIDs()
 	if err != nil {
 		return err
