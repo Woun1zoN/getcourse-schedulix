@@ -1,7 +1,7 @@
 services:
-  schedule-bot:
+  getcourse-schedulix:
     build: .
-    container_name: schedule-bot
+    container_name: getcourse-schedulix
     restart: unless-stopped
   
     env_file:

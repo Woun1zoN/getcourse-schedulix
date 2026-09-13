@@ -7,7 +7,7 @@ RUN go mod download
   
 COPY . .
   
-RUN CGO_ENABLED=0 GOOS=linux go build -o schedule-bot ./cmd/bot
+RUN CGO_ENABLED=0 GOOS=linux go build -o getcourse-schedulix ./cmd/bot
   
 
 FROM debian:bookworm-slim
@@ -21,6 +21,6 @@ RUN apt-get update \
   
 WORKDIR /app
   
-COPY --from=builder /app/schedule-bot .
+COPY --from=builder /app/getcourse-schedulix .
   
-CMD ["./schedule-bot"]
+CMD ["./getcourse-schedulix"]
