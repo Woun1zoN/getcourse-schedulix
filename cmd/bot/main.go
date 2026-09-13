@@ -6,6 +6,11 @@ import (
 	"os"
 	"strings"
 	"time"
+	"sync"
+	"sync/atomic"
+	"context"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/joho/godotenv"
 
@@ -55,73 +60,98 @@ func runOnce(client *getcourse.Client, state *storage.State, telegramClient *tel
 		return err
 	}
 
-	checked := 0
-	newDocuments := 0
-	sent := 0
+	var checked atomic.Int64
+	var newDocuments atomic.Int64
+	var sent atomic.Int64
 
 	fmt.Printf("\nLessons: %d\n", len(lessonIDs))
 
+	var stateMu sync.Mutex
+	var tgMu sync.Mutex
+
+	g, _ := errgroup.WithContext(context.Background())
+	g.SetLimit(4)
+
 	for _, id := range lessonIDs {
-		fmt.Println("Lesson:", id)
+		id := id
 
-		documents, err := client.GetLessonDocuments(id)
-		if err != nil {
-			log.Printf("lesson %s: %v", id, err)
-			continue
-		}
+		g.Go(func() error {
+			fmt.Println("Lesson:", id)
 
-		for _, document := range documents {
-			checked++
-
-			fmt.Printf("  Document: %s\n", document.Name)
-			fmt.Printf("  URL: %s\n", document.URL)
-
-			data, err := client.DownloadDocument(document)
+			documents, err := client.GetLessonDocuments(id)
 			if err != nil {
-				log.Printf("download %s: %v", document.Name, err)
-				continue
+				log.Printf("lesson %s: %v", id, err)
+				return nil
 			}
 
-			fmt.Printf("  Downloaded: %d bytes\n", len(data))
+			for _, document := range documents {
+				checked.Add(1)
 
-			if !state.HasChanged(document.URL, data) {
-				fmt.Println("  Already processed")
-				continue
+				fmt.Printf("  Document: %s\n", document.Name)
+				fmt.Printf("  URL: %s\n", document.URL)
+
+				data, err := client.DownloadDocument(document)
+				if err != nil {
+					log.Printf("download %s: %v", document.Name, err)
+					continue
+				}
+
+				fmt.Printf("  Downloaded: %d bytes\n", len(data))
+
+				stateMu.Lock()
+				changed := state.HasChanged(document.URL, data)
+				stateMu.Unlock()
+				if !changed {
+					fmt.Println("  Already processed")
+					continue
+				}
+
+				newDocuments.Add(1)
+
+				fmt.Println("  NEW DOCUMENT")
+
+				jpgPath, err := converter.ConvertToJPG(data, document.Name)
+				if err != nil {
+					log.Printf("convert %s: %v", document.Name, err)
+					continue
+				}
+
+				fmt.Println("  JPG:", jpgPath)
+
+				name := strings.TrimSuffix(document.Name, ".doc")
+				name = strings.TrimPrefix(name, "Занятия на ")
+
+				caption := "📚 Расписание на " + name
+
+				tgMu.Lock()
+				err = telegramClient.SendPhoto(jpgPath, caption)
+				tgMu.Unlock()
+				if err != nil {
+					log.Printf("telegram %s: %v", document.Name, err)
+					continue
+				}
+
+				sent.Add(1)
+
+				stateMu.Lock()
+				state.MarkProcessed(document.URL, data)
+				stateMu.Unlock()
+
+				fmt.Println("  SENT TO TELEGRAM")
 			}
 
-			newDocuments++
-
-			fmt.Println("  NEW DOCUMENT")
-
-			jpgPath, err := converter.ConvertToJPG(data, document.Name)
-			if err != nil {
-				log.Printf("convert %s: %v", document.Name, err)
-				continue
-			}
-
-			fmt.Println("  JPG:", jpgPath)
-
-			name := strings.TrimSuffix(document.Name, ".doc")
-			name = strings.TrimPrefix(name, "Занятия на ")
-
-			caption := "📚 Расписание на " + name
-
-			if err := telegramClient.SendPhoto(jpgPath, caption); err != nil {
-				log.Printf("telegram %s: %v", document.Name, err)
-				continue
-			}
-
-			sent++
-			state.MarkProcessed(document.URL, data)
-
-			fmt.Println("  SENT TO TELEGRAM")
-		}
+			return nil
+		})
 	}
 
+	if err := g.Wait(); err != nil {
+        return err
+    }
+
 	fmt.Println()
-	fmt.Printf("Checked: %d\n", checked)
-	fmt.Printf("New: %d\n", newDocuments)
-	fmt.Printf("Sent: %d\n", sent)
+	fmt.Printf("Checked: %d\n", checked.Load())
+	fmt.Printf("New: %d\n", newDocuments.Load())
+	fmt.Printf("Sent: %d\n", sent.Load())
 
 	if err := state.Save("state.json"); err != nil {
 		return err
