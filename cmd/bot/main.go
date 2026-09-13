@@ -76,47 +76,53 @@ func runOnce(client *getcourse.Client, state *storage.State, telegramClient *tel
 		id := id
 
 		g.Go(func() error {
-			fmt.Println("Lesson:", id)
+			var logBuf strings.Builder
+
+			printf := func(format string, args ...any) {
+				fmt.Fprintf(&logBuf, format, args...)
+			}
+
+			printf("Lesson: %s\n", id)
 
 			documents, err := client.GetLessonDocuments(id)
 			if err != nil {
-				log.Printf("lesson %s: %v", id, err)
+				printf("  ERROR: %v\n", err)
 				return nil
 			}
 
 			for _, document := range documents {
 				checked.Add(1)
 
-				fmt.Printf("  Document: %s\n", document.Name)
-				fmt.Printf("  URL: %s\n", document.URL)
+				printf("  Document: %s\n", document.Name)
+				printf("  URL: %s\n", document.URL)
 
 				data, err := client.DownloadDocument(document)
 				if err != nil {
-					log.Printf("download %s: %v", document.Name, err)
+					printf("  ERROR Download: %v\n", err)
 					continue
 				}
 
-				fmt.Printf("  Downloaded: %d bytes\n", len(data))
+				printf("  Downloaded: %d bytes\n", len(data))
 
 				stateMu.Lock()
 				changed := state.HasChanged(document.URL, data)
 				stateMu.Unlock()
 				if !changed {
-					fmt.Println("  Already processed")
+					printf("  Already processed\n")
 					continue
 				}
 
 				newDocuments.Add(1)
 
-				fmt.Println("  NEW DOCUMENT")
+				printf("  NEW DOCUMENT\n")
 
 				jpgPath, err := converter.ConvertToJPG(data, document.Name)
 				if err != nil {
-					log.Printf("convert %s: %v", document.Name, err)
+					printf("  ERROR Convert: %v\n", err)
 					continue
 				}
 
-				fmt.Println("  JPG:", jpgPath)
+				printf("  JPG: %s\n", jpgPath)
 
 				name := strings.TrimSuffix(document.Name, ".doc")
 				name = strings.TrimPrefix(name, "Занятия на ")
@@ -127,7 +133,7 @@ func runOnce(client *getcourse.Client, state *storage.State, telegramClient *tel
 				err = telegramClient.SendPhoto(jpgPath, caption)
 				tgMu.Unlock()
 				if err != nil {
-					log.Printf("telegram %s: %v", document.Name, err)
+					printf("  ERROR Telegram: %v\n", err)
 					continue
 				}
 
@@ -137,8 +143,10 @@ func runOnce(client *getcourse.Client, state *storage.State, telegramClient *tel
 				state.MarkProcessed(document.URL, data)
 				stateMu.Unlock()
 
-				fmt.Println("  SENT TO TELEGRAM")
+				printf("  SENT TO TELEGRAM\n")
 			}
+
+			fmt.Print(logBuf.String())
 
 			return nil
 		})
