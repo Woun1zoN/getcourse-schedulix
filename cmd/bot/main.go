@@ -129,10 +129,16 @@ func runOnce(client *getcourse.Client, state *storage.State, telegramClient *tel
 
 				printf("  JPG: %s\n", jpgPath)
 
-				name := strings.TrimSuffix(document.Name, ".doc")
-				name = strings.TrimPrefix(name, "Занятия на ")
+				name := strings.TrimPrefix(document.Name, "Занятия на ")
+				name = strings.TrimSuffix(name, ".doc")
 
-				caption := "📚 Расписание на " + name
+				caption := fmt.Sprintf(
+					"Расписание на %s\n\n"+
+						"🔗 %.1f КБ | [Скачать](%s)",
+					name,
+					fileSize,
+					document.URL,
+				)
 
 				tgMu.Lock()
 				err = telegramClient.SendPhoto(jpgPath, caption)

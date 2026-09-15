@@ -48,6 +48,10 @@ func (c *Client) SendPhoto(path string, caption string) error {
 		return err
 	}
 
+	if err := writer.WriteField("parse_mode", "Markdown"); err != nil {
+		return err
+	}
+
 	part, err := writer.CreateFormFile("photo", "schedule.jpg")
 	if err != nil {
 		return err
