@@ -38,6 +38,7 @@ func main() {
 	telegramClient := telegram.NewClient(
 		os.Getenv("TELEGRAM_BOT_TOKEN"),
 		os.Getenv("TELEGRAM_CHAT_ID"),
+		os.Getenv("TELEGRAM_LOG_CHAT_ID"),
 	)
 
 	if err := runOnce(client, state, telegramClient); err != nil {
@@ -78,6 +79,8 @@ func runOnce(client *getcourse.Client, state *storage.State, telegramClient *tel
 		g.Go(func() error {
 			var logBuf strings.Builder
 
+			lessonURL := "https://shtpt.getcourse.ru/pl/teach/control/lesson/view?id=" + id + "&editMode=0"
+
 			printf := func(format string, args ...any) {
 				fmt.Fprintf(&logBuf, format, args...)
 			}
@@ -101,6 +104,8 @@ func runOnce(client *getcourse.Client, state *storage.State, telegramClient *tel
 					printf("  ERROR Download: %v\n", err)
 					continue
 				}
+
+				fileSize := float64(len(data)) / 1024
 
 				printf("  Downloaded: %d bytes\n", len(data))
 
@@ -138,6 +143,10 @@ func runOnce(client *getcourse.Client, state *storage.State, telegramClient *tel
 				}
 
 				sent.Add(1)
+
+				if err := telegramClient.SendNewDocumentLog(document.Name, document.URL, id, lessonURL, fileSize, checked.Load(), newDocuments.Load()); err != nil {
+    				log.Printf("telegram log %s: %v", document.Name, err)
+				}
 
 				stateMu.Lock()
 				state.MarkProcessed(document.URL, data)

@@ -10,9 +10,10 @@ import (
 )
 
 type Client struct {
-	token  string
-	chatID string
-	client *http.Client
+	token     string
+	logChatID string
+	chatID    string
+	client    *http.Client
 }
 
 type response struct {
@@ -20,11 +21,12 @@ type response struct {
 	Description string `json:"description"`
 }
 
-func NewClient(token, chatID string) *Client {
+func NewClient(token, chatID, logChatID string) *Client {
 	return &Client{
-		token:  token,
-		chatID: chatID,
-		client: &http.Client{},
+		token:     token,
+		logChatID: logChatID,
+		chatID:    chatID,
+		client:    &http.Client{},
 	}
 }
 
@@ -95,4 +97,69 @@ func (c *Client) SendPhoto(path string, caption string) error {
 	}
 
 	return nil
+}
+
+func (c *Client) SendNewDocumentLog(documentName, documentURL, lessonID, lessonURL string, fileSize float64, checked, newDocuments int64) error {
+    message := fmt.Sprintf(
+    "INFO | Получен новый документ\n\n"+
+        "📄 [%s](%s)\n\n"+
+        "• ID урока: `%s`\n"+
+        "• URL: %s\n"+
+        "• Размер файла: %.1f КБ\n\n"+
+        "Проверено уроков: %d · Найдено: %d",
+    documentName, documentURL, lessonID, lessonURL, fileSize, checked, newDocuments,
+    )
+
+    payload := struct {
+        ChatID string `json:"chat_id"`
+        Text   string `json:"text"`
+		ParseMode string `json:"parse_mode"`
+    }{
+        ChatID: c.logChatID,
+        Text:   message,
+		ParseMode: "Markdown",
+    }
+
+    data, err := json.Marshal(payload)
+    if err != nil {
+        return err
+    }
+
+    url := fmt.Sprintf(
+        "https://api.telegram.org/bot%s/sendMessage",
+        c.token,
+    )
+
+    req, err := http.NewRequest(
+        http.MethodPost,
+        url,
+        bytes.NewReader(data),
+    )
+    if err != nil {
+        return err
+    }
+
+    req.Header.Set("Content-Type", "application/json")
+
+    resp, err := c.client.Do(req)
+    if err != nil {
+        return err
+    }
+    defer resp.Body.Close()
+
+    var result response
+
+    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+        return fmt.Errorf("telegram: decode response: %w", err)
+    }
+
+    if !result.OK {
+        return fmt.Errorf(
+            "telegram: status %d: %s",
+            resp.StatusCode,
+            result.Description,
+        )
+    }
+
+    return nil
 }
