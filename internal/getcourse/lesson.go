@@ -7,6 +7,7 @@ import (
 )
 
 type Document struct {
+	ID   string
 	Name string
 	URL  string
 }
@@ -47,6 +48,7 @@ func (c *Client) GetLessonDocuments(id string) ([]Document, error) {
 				}
 
 				documents = append(documents, Document{
+					ID:   id,
 					Name: name,
 					URL:  href,
 				})

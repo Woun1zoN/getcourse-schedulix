@@ -64,7 +64,8 @@ func ConvertToJPG(data []byte, filename string) (string, error) {
 		return "", err
 	}
 
-	resultPath := filepath.Join(os.TempDir(), filepath.Base(filename)+".jpg")
+	baseName := strings.TrimSuffix(filename, filepath.Ext(filename))
+	resultPath := filepath.Join(os.TempDir(), baseName+".jpg")
 
 	if err := os.WriteFile(resultPath, result, 0644); err != nil {
 		return "", err

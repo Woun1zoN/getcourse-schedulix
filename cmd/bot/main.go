@@ -79,63 +79,86 @@ func runOnce(client *getcourse.Client, state *storage.State, telegramClient *tel
 		g.Go(func() error {
 			var logBuf strings.Builder
 
-			lessonURL := "https://shtpt.getcourse.ru/pl/teach/control/lesson/view?id=" + id + "&editMode=0"
-
 			printf := func(format string, args ...any) {
 				fmt.Fprintf(&logBuf, format, args...)
 			}
 
-			printf("Lesson: %s\n", id)
+			lessonURL := "https://shtpt.getcourse.ru/pl/teach/control/lesson/view?id=" +
+				id +
+				"&editMode=0"
 
 			documents, err := client.GetLessonDocuments(id)
 			if err != nil {
-				printf("  ERROR: %v\n", err)
+				printf("  Lesson ID: %s\n", id)
+				printf("  ERROR: %v\n\n", err)
+				fmt.Print(logBuf.String())
 				return nil
 			}
 
 			for _, document := range documents {
 				checked.Add(1)
 
-				printf("  Document: %s\n", document.Name)
-				printf("  URL: %s\n", document.URL)
+				name := strings.TrimPrefix(
+					document.Name,
+					"Занятия на ",
+				)
+
+				stateMu.Lock()
+				changed := state.HasChanged(document.URL, nil)
+				stateMu.Unlock()
+
+				_ = changed
 
 				data, err := client.DownloadDocument(document)
 				if err != nil {
-					printf("  ERROR Download: %v\n", err)
+					printf("  Lesson ID: %s\n", document.ID)
+					printf("  Document: %s\n", document.Name)
+					printf("  URL: %s\n", document.URL)
+					printf("  ERROR Download: %v\n\n", err)
 					continue
 				}
 
 				fileSize := float64(len(data)) / 1024
 
-				printf("  Downloaded: %d bytes\n", len(data))
-
 				stateMu.Lock()
-				changed := state.HasChanged(document.URL, data)
+				changed = state.HasChanged(document.URL, data)
 				stateMu.Unlock()
+
 				if !changed {
-					printf("  Already processed\n")
+					printf("  Lesson ID: %s\n", document.ID)
+					printf("  Document: %s\n", document.Name)
+					printf("  URL: %s\n", document.URL)
+					printf("  Downloaded: %d bytes\n", len(data))
+					printf("  Already processed\n\n")
+
 					continue
 				}
 
 				newDocuments.Add(1)
 
-				printf("  NEW DOCUMENT\n")
+				printf("DETECTED NEW DOCUMENT\n")
+				printf("  Lesson ID: %s\n", document.ID)
+				printf("  Document: %s\n", document.Name)
+				printf("  URL: %s\n", document.URL)
+				printf("  Downloaded: %d bytes\n", len(data))
 
 				jpgPath, err := converter.ConvertToJPG(data, document.Name)
 				if err != nil {
-					printf("  ERROR Convert: %v\n", err)
+					printf("  ERROR Convert: %v\n\n", err)
 					continue
 				}
 
 				printf("  JPG: %s\n", jpgPath)
 
-				name := strings.TrimPrefix(document.Name, "Занятия на ")
-				name = strings.TrimSuffix(name, ".doc")
+				captionName := strings.TrimSuffix(
+					name,
+					".doc",
+				)
 
 				caption := fmt.Sprintf(
 					"Расписание на %s\n\n"+
 						"🔗 %.1f КБ | [Скачать](%s)",
-					name,
+					captionName,
 					fileSize,
 					document.URL,
 				)
@@ -143,15 +166,16 @@ func runOnce(client *getcourse.Client, state *storage.State, telegramClient *tel
 				tgMu.Lock()
 				err = telegramClient.SendPhoto(jpgPath, caption)
 				tgMu.Unlock()
+
 				if err != nil {
-					printf("  ERROR Telegram: %v\n", err)
+					printf("  ERROR Telegram: %v\n\n", err)
 					continue
 				}
 
 				sent.Add(1)
 
-				if err := telegramClient.SendNewDocumentLog(document.Name, document.URL, id, lessonURL, fileSize, checked.Load(), newDocuments.Load()); err != nil {
-    				log.Printf("telegram log %s: %v", document.Name, err)
+				if err := telegramClient.SendNewDocumentLog(document.Name, document.URL, document.ID, lessonURL, fileSize, checked.Load(), newDocuments.Load()); err != nil {
+					log.Printf("telegram log %s: %v", document.Name, err)
 				}
 
 				stateMu.Lock()
@@ -168,8 +192,8 @@ func runOnce(client *getcourse.Client, state *storage.State, telegramClient *tel
 	}
 
 	if err := g.Wait(); err != nil {
-        return err
-    }
+		return err
+	}
 
 	fmt.Println()
 	fmt.Printf("Checked: %d\n", checked.Load())
