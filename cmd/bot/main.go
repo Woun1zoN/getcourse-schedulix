@@ -98,10 +98,8 @@ func runOnce(client *getcourse.Client, state *storage.State, telegramClient *tel
 			for _, document := range documents {
 				checked.Add(1)
 
-				name := strings.TrimPrefix(
-					document.Name,
-					"Занятия на ",
-				)
+				name := strings.TrimPrefix(document.Name, "Занятия на ")
+				name = strings.TrimSuffix(name, ".doc")
 
 				stateMu.Lock()
 				changed := state.HasChanged(document.URL, nil)
@@ -112,7 +110,7 @@ func runOnce(client *getcourse.Client, state *storage.State, telegramClient *tel
 				data, err := client.DownloadDocument(document)
 				if err != nil {
 					printf("  Lesson ID: %s\n", document.ID)
-					printf("  Document: %s\n", document.Name)
+					printf("  Document: %s\n", name)
 					printf("  URL: %s\n", document.URL)
 					printf("  ERROR Download: %v\n\n", err)
 					continue
@@ -126,7 +124,7 @@ func runOnce(client *getcourse.Client, state *storage.State, telegramClient *tel
 
 				if !changed {
 					printf("  Lesson ID: %s\n", document.ID)
-					printf("  Document: %s\n", document.Name)
+					printf("  Document: %s\n", name)
 					printf("  URL: %s\n", document.URL)
 					printf("  Downloaded: %d bytes\n", len(data))
 					printf("  Already processed\n\n")
@@ -138,7 +136,7 @@ func runOnce(client *getcourse.Client, state *storage.State, telegramClient *tel
 
 				printf("DETECTED NEW DOCUMENT\n")
 				printf("  Lesson ID: %s\n", document.ID)
-				printf("  Document: %s\n", document.Name)
+				printf("  Document: %s\n", name)
 				printf("  URL: %s\n", document.URL)
 				printf("  Downloaded: %d bytes\n", len(data))
 
