@@ -1,11 +1,23 @@
 services:
+  postgres:
+    image: postgres:15
+    container_name: schedulix-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   getcourse-schedulix:
     build: .
     container_name: getcourse-schedulix
     restart: unless-stopped
-  
     env_file:
       - .env
-  
+    depends_on:
+      - postgres
     volumes:
       - ./state.json:/app/state.json
+
+volumes:
+  postgres_data:
