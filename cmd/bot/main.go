@@ -14,6 +14,7 @@ import (
 	"github.com/Woun1zoN/schedule-bot/internal/telegram"
 	"github.com/Woun1zoN/schedule-bot/internal/database"
 	"github.com/Woun1zoN/schedule-bot/internal/database/migrations"
+	"github.com/Woun1zoN/schedule-bot/internal/user"
 )
 
 func main() {
@@ -21,16 +22,21 @@ func main() {
 
 	cookies := os.Getenv("GETCOURSE_COOKIES")
 
-	migrations.Run(
+	if err := migrations.Run(
     	os.Getenv("DATABASE_URL"),
     	"file:///app/internal/database/migrations/sql",
-	)
+	); err != nil {
+    	log.Fatal(err)
+	}
 
 	db, err := database.InitDB(context.Background(), os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.DB.Close()
+
+	userRepository := user.NewRepository(db.DB)
+	userService := user.NewService(userRepository)
 
 	client := getcourse.NewClient("https://shtpt.getcourse.ru", cookies)
 
@@ -39,7 +45,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	telegramClient := telegram.NewClient(os.Getenv("TELEGRAM_BOT_TOKEN"), os.Getenv("TELEGRAM_CHAT_ID"), os.Getenv("TELEGRAM_LOG_CHAT_ID"))
+	telegramClient := telegram.NewClient(os.Getenv("TELEGRAM_BOT_TOKEN"), os.Getenv("TELEGRAM_CHAT_ID"), os.Getenv("TELEGRAM_LOG_CHAT_ID"), userService)
+
+	if err := telegramClient.Run(); err != nil {
+    	log.Fatal(err)
+	}
 
 	if err := app.InitApp(client, state, telegramClient); err != nil {
 		log.Println("run:", err)

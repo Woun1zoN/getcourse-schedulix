@@ -10,9 +10,9 @@ import (
 )
 
 type Client struct {
-	baseURL string
-	cookies string
-	client  *http.Client
+	baseURL 	string
+	cookies 	string
+	client  	*http.Client
 }
 
 func NewClient(baseURL, cookies string) *Client {

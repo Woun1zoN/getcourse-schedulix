@@ -7,13 +7,16 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+
+	"github.com/Woun1zoN/schedule-bot/internal/user"
 )
 
 type Client struct {
-	token     string
-	logChatID string
-	chatID    string
-	client    *http.Client
+	token       string
+	logChatID   string
+	chatID      string
+	userService *user.Service
+	client      *http.Client
 }
 
 type response struct {
@@ -21,12 +24,13 @@ type response struct {
 	Description string `json:"description"`
 }
 
-func NewClient(token, chatID, logChatID string) *Client {
+func NewClient(token, chatID, logChatID string, userService *user.Service) *Client {
 	return &Client{
-		token:     token,
-		logChatID: logChatID,
-		chatID:    chatID,
-		client:    &http.Client{},
+		token:       token,
+		logChatID:   logChatID,
+		chatID:      chatID,
+		userService: userService,
+		client:      &http.Client{},
 	}
 }
 
