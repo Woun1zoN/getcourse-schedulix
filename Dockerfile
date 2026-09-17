@@ -22,6 +22,6 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY --from=builder /app/getcourse-schedulix .
-COPY --from=builder /app/internal/database/migrations /app/internal/db/migrations
+COPY --from=builder /app/internal/database/migrations /app/internal/database/migrations
 
 CMD ["./getcourse-schedulix"]
