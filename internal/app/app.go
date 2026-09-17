@@ -31,11 +31,13 @@ func InitApp(client *getcourse.Client, state *storage.State, telegramClient *tel
 	var stateMu sync.Mutex
 	var tgMu sync.Mutex
 
+	logs := make([]string, len(lessonIDs))
+
 	g, _ := errgroup.WithContext(context.Background())
 	g.SetLimit(4)
 
-	for _, id := range lessonIDs {
-		id := id
+	for i, id := range lessonIDs {
+		i, id := i, id
 
 		g.Go(func() error {
 			var logBuf strings.Builder
@@ -52,7 +54,7 @@ func InitApp(client *getcourse.Client, state *storage.State, telegramClient *tel
 			if err != nil {
 				printf("  Lesson ID: %s\n", id)
 				printf("  ERROR: %v\n\n", err)
-				fmt.Print(logBuf.String())
+				logs[i] = logBuf.String()
 				return nil
 			}
 
@@ -141,10 +143,10 @@ func InitApp(client *getcourse.Client, state *storage.State, telegramClient *tel
 				state.MarkProcessed(document.URL, data)
 				stateMu.Unlock()
 
-				printf("  SENT TO TELEGRAM\n")
+				printf("SENT TO TELEGRAM\n\n")
 			}
 
-			fmt.Print(logBuf.String())
+			logs[i] = logBuf.String()
 
 			return nil
 		})
@@ -153,6 +155,10 @@ func InitApp(client *getcourse.Client, state *storage.State, telegramClient *tel
 	if err := g.Wait(); err != nil {
 		return err
 	}
+
+	for _, l := range logs {
+        fmt.Print(l)
+    }
 
 	fmt.Println()
 	fmt.Printf("Checked: %d\n", checked.Load())
