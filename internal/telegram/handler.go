@@ -10,7 +10,7 @@ func (c *Client) handleMessage(message *Message) error {
 		return nil
 	}
 
-	user, err := c.userService.GetOrCreate(
+	_, err := c.userService.GetOrCreate(
 		context.Background(),
 		message.From.ID,
 	)
@@ -18,7 +18,8 @@ func (c *Client) handleMessage(message *Message) error {
 		return fmt.Errorf("get or create user: %w", err)
 	}
 
-	fmt.Println("user:", user.TelegramID)
-
-	return nil
+	return c.SendMessage(
+        message.Chat.ID,
+        "Добро пожаловать в Schedulix!\n\n"+"Для начала подключите GetCourse.",
+    )
 }

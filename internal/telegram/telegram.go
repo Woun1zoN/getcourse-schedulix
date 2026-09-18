@@ -7,8 +7,10 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"log/slog"
 
 	"github.com/Woun1zoN/schedule-bot/internal/user"
+	"github.com/Woun1zoN/schedule-bot/internal/logging"
 )
 
 type Client struct {
@@ -17,6 +19,7 @@ type Client struct {
 	chatID      string
 	userService *user.Service
 	client      *http.Client
+	logger 	    *slog.Logger
 }
 
 type response struct {
@@ -31,6 +34,7 @@ func NewClient(token, chatID, logChatID string, userService *user.Service) *Clie
 		chatID:      chatID,
 		userService: userService,
 		client:      &http.Client{},
+		logger: 	 logging.NewLogger(),
 	}
 }
 
@@ -167,6 +171,53 @@ func (c *Client) SendNewDocumentLog(documentName, documentURL, lessonID, lessonU
             resp.StatusCode,
             result.Description,
         )
+    }
+
+    return nil
+}
+
+func (c *Client) SendMessage(chatID int64, text string) error {
+    url := fmt.Sprintf(
+        "https://api.telegram.org/bot%s/sendMessage",
+        c.token,
+    )
+
+    payload := struct {
+        ChatID    int64  `json:"chat_id"`
+        Text      string `json:"text"`
+        ParseMode string `json:"parse_mode"`
+    }{
+        ChatID:    chatID,
+        Text:      text,
+        ParseMode: "Markdown",
+    }
+
+    body, err := json.Marshal(payload)
+    if err != nil {
+        return err
+    }
+
+    resp, err := c.client.Post(
+        url,
+        "application/json",
+        bytes.NewReader(body),
+    )
+    if err != nil {
+        return err
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        return fmt.Errorf("telegram: sendMessage status %d", resp.StatusCode)
+    }
+
+    var result response
+    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+        return err
+    }
+
+    if !result.OK {
+        return fmt.Errorf("telegram: sendMessage: %s", result.Description)
     }
 
     return nil
