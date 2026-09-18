@@ -26,7 +26,7 @@ func InitApp(client *getcourse.Client, state *storage.State, telegramClient *tel
 	var newDocuments atomic.Int64
 	var sent atomic.Int64
 
-	fmt.Printf("\nLessons: %d\n", len(lessonIDs))
+	fmt.Printf("Lessons: %d\n", len(lessonIDs))
 
 	var stateMu sync.Mutex
 	var tgMu sync.Mutex
@@ -163,7 +163,7 @@ func InitApp(client *getcourse.Client, state *storage.State, telegramClient *tel
 	fmt.Println()
 	fmt.Printf("Checked: %d\n", checked.Load())
 	fmt.Printf("New: %d\n", newDocuments.Load())
-	fmt.Printf("Sent: %d\n", sent.Load())
+	fmt.Printf("Sent: %d\n\n", sent.Load())
 
 	if err := state.Save("state.json"); err != nil {
 		return err
