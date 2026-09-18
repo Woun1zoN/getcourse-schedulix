@@ -47,9 +47,11 @@ func main() {
 
 	telegramClient := telegram.NewClient(os.Getenv("TELEGRAM_BOT_TOKEN"), os.Getenv("TELEGRAM_CHAT_ID"), os.Getenv("TELEGRAM_LOG_CHAT_ID"), userService)
 
-	if err := telegramClient.Run(); err != nil {
-    	log.Fatal(err)
-	}
+	go func() {
+    	if err := telegramClient.Run(); err != nil {
+        	log.Fatal(err)
+    	}
+	}()
 
 	if err := app.InitApp(client, state, telegramClient); err != nil {
 		log.Println("run:", err)
