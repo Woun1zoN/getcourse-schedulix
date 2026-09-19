@@ -6,6 +6,8 @@ import (
 	"time"
 	"context"
 	"strconv"
+	"os/signal"
+	"syscall"
 
 	"github.com/joho/godotenv"
 
@@ -19,6 +21,9 @@ import (
 )
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	_ = godotenv.Load()
 
 	// Configuration
@@ -39,7 +44,7 @@ func main() {
 	}
 
 	// Database initialization
-	db, err := database.InitDB(context.Background(), databaseURL)
+	db, err := database.InitDB(ctx, databaseURL)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,22 +79,19 @@ func main() {
 	telegramClient := telegram.NewClient(telegramToken, telegramChatID, telegramLogChatID, userService)
 
 	go func() {
-    	if err := telegramClient.Run(); err != nil {
+    	if err := telegramClient.Run(ctx); err != nil {
         	log.Fatal(err)
     	}
 	}()
 
 	// Run the application
-	if err := app.InitApp(getCourseClient, state, telegramClient); err != nil {
-		log.Println("run:", err)
-	}
+	runner := app.NewRunner(
+    	getCourseClient,
+    	state,
+    	telegramClient,
+    	5*time.Minute,
+	)
 
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		if err := app.InitApp(getCourseClient, state, telegramClient); err != nil {
-			log.Println("run:", err)
-		}
-	}
+	runner.Run(ctx)
+	log.Println("app stopped gracefully")
 }
