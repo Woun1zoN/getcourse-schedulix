@@ -1,8 +1,10 @@
 package telegram
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+    "net/http"
 )
 
 type Update struct {
@@ -24,54 +26,68 @@ type User struct {
     ID int64 `json:"id"`
 }
 
-func (c *Client) getUpdates(offset int) ([]Update, error) {
-    url := fmt.Sprintf(
-        "https://api.telegram.org/bot%s/getUpdates?offset=%d",
-        c.token,
-        offset,
-    )
+func (c *Client) getUpdates(ctx context.Context, offset int) ([]Update, error) {
+	url := fmt.Sprintf(
+		"https://api.telegram.org/bot%s/getUpdates?offset=%d",
+		c.token,
+		offset,
+	)
 
-    resp, err := c.client.Get(url)
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
 
-    var result struct {
-        OK     bool     `json:"ok"`
-        Result []Update `json:"result"`
-    }
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
 
-    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-        return nil, err
-    }
+	var result struct {
+		OK     bool     `json:"ok"`
+		Result []Update `json:"result"`
+	}
 
-    if !result.OK {
-        return nil, fmt.Errorf("telegram: getUpdates failed")
-    }
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
 
-    return result.Result, nil
+	if !result.OK {
+		return nil, fmt.Errorf("telegram: getUpdates failed")
+	}
+
+	return result.Result, nil
 }
 
-func (c *Client) Run() error {
-    offset := 0
+func (c *Client) Run(ctx context.Context) error {
+	offset := 0
 
-    for {
-        updates, err := c.getUpdates(offset)
-        if err != nil {
-            return err
-        }
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
 
-        for _, update := range updates {
-            offset = update.UpdateID + 1
+		updates, err := c.getUpdates(ctx, offset)
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil // это не ошибка, это shutdown
+			}
+			return err
+		}
 
-            if update.Message == nil {
-                continue
-            }
+		for _, update := range updates {
+			offset = update.UpdateID + 1
 
-            if err := c.handleMessage(update.Message); err != nil {
-                return err
-            }
-        }
-    }
+			if update.Message == nil {
+				continue
+			}
+
+			if err := c.handleMessage(update.Message); err != nil {
+				return err
+			}
+		}
+	}
 }
