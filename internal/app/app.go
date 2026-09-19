@@ -1,12 +1,12 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
 	"sync"
 	"sync/atomic"
-	"context"
 
 	"golang.org/x/sync/errgroup"
 
@@ -16,7 +16,7 @@ import (
 	"github.com/Woun1zoN/schedule-bot/internal/telegram"
 )
 
-func InitApp(client *getcourse.Client, state *storage.State, telegramClient *telegram.Client) error {
+func InitApp(client *getcourse.Client, state *storage.RedisState, telegramClient *telegram.Client) error {
 	lessonIDs, err := client.GetLessonIDs()
 	if err != nil {
 		return err
@@ -28,12 +28,11 @@ func InitApp(client *getcourse.Client, state *storage.State, telegramClient *tel
 
 	fmt.Printf("Lessons: %d\n", len(lessonIDs))
 
-	var stateMu sync.Mutex
 	var tgMu sync.Mutex
 
 	logs := make([]string, len(lessonIDs))
 
-	g, _ := errgroup.WithContext(context.Background())
+	g, ctx := errgroup.WithContext(context.Background())
 	g.SetLimit(4)
 
 	for i, id := range lessonIDs {
@@ -64,12 +63,6 @@ func InitApp(client *getcourse.Client, state *storage.State, telegramClient *tel
 				name := strings.TrimPrefix(document.Name, "Занятия на ")
 				name = strings.TrimSuffix(name, ".doc")
 
-				stateMu.Lock()
-				changed := state.HasChanged(document.URL, nil)
-				stateMu.Unlock()
-
-				_ = changed
-
 				data, err := client.DownloadDocument(document)
 				if err != nil {
 					printf("  Lesson ID: %s\n", document.ID)
@@ -81,9 +74,13 @@ func InitApp(client *getcourse.Client, state *storage.State, telegramClient *tel
 
 				fileSize := float64(len(data)) / 1024
 
-				stateMu.Lock()
-				changed = state.HasChanged(document.URL, data)
-				stateMu.Unlock()
+				changed, err := state.HasChanged(ctx, document.URL, data)
+				if err != nil {
+					printf("  Lesson ID: %s\n", document.ID)
+					printf("  Document: %s\n", name)
+					printf("  ERROR Redis HasChanged: %v\n\n", err)
+					continue
+				}
 
 				if !changed {
 					printf("  Lesson ID: %s\n", document.ID)
@@ -91,7 +88,6 @@ func InitApp(client *getcourse.Client, state *storage.State, telegramClient *tel
 					printf("  URL: %s\n", document.URL)
 					printf("  Downloaded: %d bytes\n", len(data))
 					printf("  Already processed\n\n")
-
 					continue
 				}
 
@@ -139,9 +135,9 @@ func InitApp(client *getcourse.Client, state *storage.State, telegramClient *tel
 					log.Printf("telegram log %s: %v", document.Name, err)
 				}
 
-				stateMu.Lock()
-				state.MarkProcessed(document.URL, data)
-				stateMu.Unlock()
+				if err := state.MarkProcessed(ctx, document.URL, data); err != nil {
+					printf("  ERROR Redis MarkProcessed: %v\n\n", err)
+				}
 
 				printf("SENT TO TELEGRAM\n\n")
 			}
@@ -157,17 +153,13 @@ func InitApp(client *getcourse.Client, state *storage.State, telegramClient *tel
 	}
 
 	for _, l := range logs {
-        fmt.Print(l)
-    }
+		fmt.Print(l)
+	}
 
 	fmt.Println()
 	fmt.Printf("Checked: %d\n", checked.Load())
 	fmt.Printf("New: %d\n", newDocuments.Load())
 	fmt.Printf("Sent: %d\n\n", sent.Load())
-
-	if err := state.Save("state.json"); err != nil {
-		return err
-	}
 
 	return nil
 }

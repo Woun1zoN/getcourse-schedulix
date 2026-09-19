@@ -1,48 +1,20 @@
 package storage
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
-	"os"
+
+	"github.com/redis/go-redis/v9"
 )
 
-type State struct {
-	Documents map[string]string `json:"documents"`
+type RedisState struct {
+	rdb *redis.Client
+	key string
 }
 
-func NewState() *State {
-	return &State{
-		Documents: make(map[string]string),
-	}
-}
-
-func Load(path string) (*State, error) {
-	data, err := os.ReadFile(path)
-	if os.IsNotExist(err) {
-		return NewState(), nil
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	state := NewState()
-
-	if err := json.Unmarshal(data, state); err != nil {
-		return nil, err
-	}
-
-	return state, nil
-}
-
-func (s *State) Save(path string) error {
-	data, err := json.MarshalIndent(s, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(path, data, 0644)
+func NewRedisState(rdb *redis.Client, key string) *RedisState {
+	return &RedisState{rdb: rdb, key: key}
 }
 
 func Hash(data []byte) string {
@@ -50,14 +22,20 @@ func Hash(data []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func (s *State) HasChanged(url string, data []byte) bool {
+func (s *RedisState) HasChanged(ctx context.Context, url string, data []byte) (bool, error) {
 	hash := Hash(data)
 
-	oldHash, exists := s.Documents[url]
+	oldHash, err := s.rdb.HGet(ctx, s.key, url).Result()
+	if err == redis.Nil {
+		return true, nil
+	}
+	if err != nil {
+		return false, err
+	}
 
-	return !exists || oldHash != hash
+	return oldHash != hash, nil
 }
 
-func (s *State) MarkProcessed(url string, data []byte) {
-	s.Documents[url] = Hash(data)
+func (s *RedisState) MarkProcessed(ctx context.Context, url string, data []byte) error {
+	return s.rdb.HSet(ctx, s.key, url, Hash(data)).Err()
 }

@@ -68,10 +68,7 @@ func main() {
 	// GetCourse client initialization
 	getCourseClient := getcourse.NewClient("https://shtpt.getcourse.ru", getcourseCookies)
 
-	state, err := storage.Load("state.json")
-	if err != nil {
-		log.Fatal(err)
-	}
+	state := storage.NewRedisState(redisClient, "docs:hashes")
 
 	// Telegram client initialization
 	telegramClient := telegram.NewClient(telegramToken, telegramChatID, telegramLogChatID, userService)
