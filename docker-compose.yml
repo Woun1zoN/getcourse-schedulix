@@ -8,6 +8,14 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    container_name: schedulix-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
   getcourse-schedulix:
     build: .
     container_name: getcourse-schedulix
@@ -16,8 +24,10 @@ services:
       - .env
     depends_on:
       - postgres
+      - redis
     volumes:
       - ./state.json:/app/state.json
 
 volumes:
   postgres_data:
+  redis_data:
