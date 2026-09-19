@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 	"context"
+	"strconv"
 
 	"github.com/joho/godotenv"
 
@@ -20,32 +21,60 @@ import (
 func main() {
 	_ = godotenv.Load()
 
-	cookies := os.Getenv("GETCOURSE_COOKIES")
+	// Configuration
+	databaseURL := os.Getenv("DATABASE_URL")
+	redisAddr := os.Getenv("REDIS_ADDR")
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	telegramToken := os.Getenv("TELEGRAM_BOT_TOKEN")
+	telegramChatID := os.Getenv("TELEGRAM_CHAT_ID")
+	telegramLogChatID := os.Getenv("TELEGRAM_LOG_CHAT_ID")
+	getcourseCookies := os.Getenv("GETCOURSE_COOKIES")
 
+	// Database migrations
 	if err := migrations.Run(
-    	os.Getenv("DATABASE_URL"),
+    	databaseURL,
     	"file:///app/internal/database/migrations/sql",
 	); err != nil {
     	log.Fatal(err)
 	}
 
-	db, err := database.InitDB(context.Background(), os.Getenv("DATABASE_URL"))
+	// Database initialization
+	db, err := database.InitDB(context.Background(), databaseURL)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.DB.Close()
 
+	// Redis initialization
+	redisDB, err := strconv.Atoi(os.Getenv("REDIS_DB"))
+	if err != nil {
+    	log.Fatalf("parse REDIS_DB: %v", err)
+	}
+
+	redisClient, err := storage.NewRedisClient(
+    	redisAddr,
+		redisPassword,
+    	redisDB,
+	)
+	if err != nil {
+    	log.Fatal(err)
+	}
+	defer redisClient.Close()
+
+	// User service initialization
 	userRepository := user.NewRepository(db.DB)
 	userService := user.NewService(userRepository)
 
-	client := getcourse.NewClient("https://shtpt.getcourse.ru", cookies)
+	// GetCourse client initialization
+	getCourseClient := getcourse.NewClient("https://shtpt.getcourse.ru", getcourseCookies)
 
 	state, err := storage.Load("state.json")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	telegramClient := telegram.NewClient(os.Getenv("TELEGRAM_BOT_TOKEN"), os.Getenv("TELEGRAM_CHAT_ID"), os.Getenv("TELEGRAM_LOG_CHAT_ID"), userService)
+	// Telegram client initialization
+	telegramClient := telegram.NewClient(telegramToken, telegramChatID, telegramLogChatID, userService)
 
 	go func() {
     	if err := telegramClient.Run(); err != nil {
@@ -53,7 +82,8 @@ func main() {
     	}
 	}()
 
-	if err := app.InitApp(client, state, telegramClient); err != nil {
+	// Run the application
+	if err := app.InitApp(getCourseClient, state, telegramClient); err != nil {
 		log.Println("run:", err)
 	}
 
@@ -61,7 +91,7 @@ func main() {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		if err := app.InitApp(client, state, telegramClient); err != nil {
+		if err := app.InitApp(getCourseClient, state, telegramClient); err != nil {
 			log.Println("run:", err)
 		}
 	}
