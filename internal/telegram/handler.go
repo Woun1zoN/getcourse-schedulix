@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
     "strings"
+    "log/slog"
 
     "github.com/Woun1zoN/getcourse-schedulix/internal/getcourse"
     "github.com/Woun1zoN/getcourse-schedulix/internal/user"
@@ -20,22 +21,28 @@ func (c *Client) handleMessage(message *Message) error {
 	}
 
 	if message.Text == "/start" {
-		if err := c.sessionStore.ClearState(ctx, message.From.ID); err != nil {
-			return fmt.Errorf("clear session state: %w", err)
-		}
+	    if err := c.sessionStore.ClearState(ctx, message.From.ID); err != nil {
+	    	return fmt.Errorf("clear session state: %w", err)
+	    }
 
-		kb := &InlineKeyboardMarkup{
-			InlineKeyboard: [][]InlineKeyboardButton{
-				{{Text: "🔗 Подключить GetCourse", CallbackData: callbackConnectGetCourse}},
-			},
-		}
+	    c.logger.Info(
+	    	"telegram command",
+	    	slog.String("command", "/start"),
+	    	slog.Int64("telegram_id", message.From.ID),
+	    )
 
-		return c.SendMessageWithKeyboard(
-			message.Chat.ID,
-			"Добро пожаловать в Schedulix!\n\nДля начала подключите GetCourse.",
-			kb,
-		)
-	}
+	    kb := &InlineKeyboardMarkup{
+	    	InlineKeyboard: [][]InlineKeyboardButton{
+	    		{{Text: "🔗 Подключить GetCourse", CallbackData: callbackConnectGetCourse}},
+	    	},
+	    }
+
+	    return c.SendMessageWithKeyboard(
+	    	message.Chat.ID,
+	    	"Добро пожаловать в Schedulix!\n\nДля начала подключите GetCourse.",
+	    	kb,
+	    )
+    }
 
 	awaiting, err := c.sessionStore.IsAwaitingCookie(ctx, message.From.ID)
 	if err != nil {
