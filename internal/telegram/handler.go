@@ -15,34 +15,43 @@ const callbackConnectGetCourse = "connect_getcourse"
 func (c *Client) handleMessage(message *Message) error {
 	ctx := context.Background()
 
+	if message.Chat.Type != "private" {
+		return nil
+	}
+
 	u, err := c.userService.GetOrCreate(ctx, message.From.ID)
 	if err != nil {
 		return fmt.Errorf("get or create user: %w", err)
 	}
 
 	if message.Text == "/start" {
-	    if err := c.sessionStore.ClearState(ctx, message.From.ID); err != nil {
-	    	return fmt.Errorf("clear session state: %w", err)
-	    }
+		if err := c.sessionStore.ClearState(ctx, message.From.ID); err != nil {
+			return fmt.Errorf("clear session state: %w", err)
+		}
 
-	    c.logger.Info(
-	    	"telegram command",
-	    	slog.String("command", "/start"),
-	    	slog.Int64("telegram_id", message.From.ID),
-	    )
+		c.logger.Info(
+			"telegram command",
+			slog.String("command", "/start"),
+			slog.Int64("telegram_id", message.From.ID),
+		)
 
-	    kb := &InlineKeyboardMarkup{
-	    	InlineKeyboard: [][]InlineKeyboardButton{
-	    		{{Text: "🔗 Подключить GetCourse", CallbackData: callbackConnectGetCourse}},
-	    	},
-	    }
+		kb := &InlineKeyboardMarkup{
+			InlineKeyboard: [][]InlineKeyboardButton{
+				{
+					{
+						Text:         "🔗 Подключить GetCourse",
+						CallbackData: callbackConnectGetCourse,
+					},
+				},
+			},
+		}
 
-	    return c.SendMessageWithKeyboard(
-	    	message.Chat.ID,
-	    	"Добро пожаловать в Schedulix!\n\nДля начала подключите GetCourse.",
-	    	kb,
-	    )
-    }
+		return c.SendMessageWithKeyboard(
+			message.Chat.ID,
+			"Добро пожаловать в Schedulix!\n\nДля начала подключите GetCourse.",
+			kb,
+		)
+	}
 
 	awaiting, err := c.sessionStore.IsAwaitingCookie(ctx, message.From.ID)
 	if err != nil {

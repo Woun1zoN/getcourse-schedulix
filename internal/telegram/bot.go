@@ -28,6 +28,7 @@ type CallbackQuery struct {
 
 type Chat struct {
     ID int64 `json:"id"`
+	Type string `json:"type"`
 }
 
 type User struct {
