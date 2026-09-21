@@ -8,14 +8,22 @@ import (
 )
 
 type Update struct {
-    UpdateID int `json:"update_id"`
-    Message  *Message `json:"message"`
+    UpdateID      int            `json:"update_id"`
+    Message       *Message       `json:"message"`
+    CallbackQuery *CallbackQuery `json:"callback_query"`
 }
 
 type Message struct {
     From *User `json:"from"`
 	Chat Chat  `json:"chat"`
     Text string `json:"text"`
+}
+
+type CallbackQuery struct {
+    ID      string  `json:"id"`
+    From    User    `json:"from"`
+    Message Message `json:"message"`
+    Data    string  `json:"data"`
 }
 
 type Chat struct {
@@ -79,14 +87,17 @@ func (c *Client) Run(ctx context.Context) error {
 		}
 
 		for _, update := range updates {
-			offset = update.UpdateID + 1
+    		offset = update.UpdateID + 1
 
-			if update.Message == nil {
-				continue
-			}
-
-			if err := c.handleMessage(update.Message); err != nil {
-				return err
+    		switch {
+    		case update.CallbackQuery != nil:
+        		if err := c.handleCallbackQuery(update.CallbackQuery); err != nil {
+            		return err
+        		}
+    		case update.Message != nil:
+        		if err := c.handleMessage(update.Message); err != nil {
+        		    return err
+        		}
 			}
 		}
 	}

@@ -9,17 +9,29 @@ import (
 	"os"
 	"log/slog"
 
-	"github.com/Woun1zoN/schedule-bot/internal/user"
-	"github.com/Woun1zoN/schedule-bot/internal/logging"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/logging"
+    "github.com/Woun1zoN/getcourse-schedulix/internal/storage"
 )
 
 type Client struct {
-	token       string
-	logChatID   string
-	chatID      string
-	userService *user.Service
-	client      *http.Client
-	logger 	    *slog.Logger
+	token        string
+	logChatID    string
+	chatID       string
+	userService  *user.Service
+	client       *http.Client
+	logger 	     *slog.Logger
+    sessionStore *storage.SessionStore
+    getCourseBaseURL string
+}
+
+type InlineKeyboardButton struct {
+    Text         string `json:"text"`
+    CallbackData string `json:"callback_data"`
+}
+
+type InlineKeyboardMarkup struct {
+    InlineKeyboard [][]InlineKeyboardButton `json:"inline_keyboard"`
 }
 
 type response struct {
@@ -27,14 +39,16 @@ type response struct {
 	Description string `json:"description"`
 }
 
-func NewClient(token, chatID, logChatID string, userService *user.Service) *Client {
+func NewClient(token, chatID, logChatID, getCourseBaseURL string, userService *user.Service, sessionStore *storage.SessionStore) *Client {
 	return &Client{
-		token:       token,
-		logChatID:   logChatID,
-		chatID:      chatID,
-		userService: userService,
-		client:      &http.Client{},
-		logger: 	 logging.NewLogger(),
+		token:        token,
+		logChatID:    logChatID,
+		chatID:       chatID,
+		userService:  userService,
+		client:       &http.Client{},
+		logger: 	  logging.NewLogger(),
+        sessionStore: sessionStore,
+        getCourseBaseURL: getCourseBaseURL,
 	}
 }
 
@@ -183,13 +197,15 @@ func (c *Client) SendMessage(chatID int64, text string) error {
     )
 
     payload := struct {
-        ChatID    int64  `json:"chat_id"`
-        Text      string `json:"text"`
-        ParseMode string `json:"parse_mode"`
+        ChatID                int64  `json:"chat_id"`
+        Text                  string `json:"text"`
+        ParseMode             string `json:"parse_mode"`
+        DisableWebPagePreview bool `json:"disable_web_page_preview,omitempty"`
     }{
-        ChatID:    chatID,
-        Text:      text,
-        ParseMode: "Markdown",
+        ChatID:                chatID,
+        Text:                  text,
+        ParseMode:             "Markdown",
+        DisableWebPagePreview: true,
     }
 
     body, err := json.Marshal(payload)
@@ -220,5 +236,53 @@ func (c *Client) SendMessage(chatID int64, text string) error {
         return fmt.Errorf("telegram: sendMessage: %s", result.Description)
     }
 
+    return nil
+}
+
+func (c *Client) SendMessageWithKeyboard(chatID int64, text string, kb *InlineKeyboardMarkup) error {
+    payload := struct {
+        ChatID      int64                  `json:"chat_id"`
+        Text        string                 `json:"text"`
+        ParseMode   string                 `json:"parse_mode"`
+        ReplyMarkup *InlineKeyboardMarkup  `json:"reply_markup,omitempty"`
+    }{chatID, text, "Markdown", kb}
+
+    data, err := json.Marshal(payload)
+    if err != nil {
+        return err
+    }
+
+    resp, err := c.client.Post(
+        fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", c.token),
+        "application/json", bytes.NewReader(data),
+    )
+    if err != nil {
+        return err
+    }
+    defer resp.Body.Close()
+
+    var result response
+
+    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+    	return fmt.Errorf("telegram: decode response: %w", err)
+    }
+
+    if !result.OK {
+    	return fmt.Errorf("telegram: sendMessage: %s", result.Description)
+    }
+
+    return nil
+}
+
+func (c *Client) answerCallbackQuery(id string) error {
+    data, _ := json.Marshal(map[string]string{"callback_query_id": id})
+    resp, err := c.client.Post(
+        fmt.Sprintf("https://api.telegram.org/bot%s/answerCallbackQuery", c.token),
+        "application/json", bytes.NewReader(data),
+    )
+    if err != nil {
+        return err
+    }
+    defer resp.Body.Close()
     return nil
 }

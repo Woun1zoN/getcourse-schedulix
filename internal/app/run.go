@@ -6,9 +6,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/Woun1zoN/schedule-bot/internal/getcourse"
-	"github.com/Woun1zoN/schedule-bot/internal/storage"
-	"github.com/Woun1zoN/schedule-bot/internal/telegram"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/getcourse"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/storage"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram"
 )
 
 type Runner struct {

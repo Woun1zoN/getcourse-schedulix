@@ -11,13 +11,13 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"github.com/Woun1zoN/schedule-bot/internal/app"
-	"github.com/Woun1zoN/schedule-bot/internal/getcourse"
-	"github.com/Woun1zoN/schedule-bot/internal/storage"
-	"github.com/Woun1zoN/schedule-bot/internal/telegram"
-	"github.com/Woun1zoN/schedule-bot/internal/database"
-	"github.com/Woun1zoN/schedule-bot/internal/database/migrations"
-	"github.com/Woun1zoN/schedule-bot/internal/user"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/app"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/getcourse"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/storage"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/database"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/database/migrations"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
 )
 
 func main() {
@@ -34,6 +34,8 @@ func main() {
 	telegramChatID := os.Getenv("TELEGRAM_CHAT_ID")
 	telegramLogChatID := os.Getenv("TELEGRAM_LOG_CHAT_ID")
 	getcourseCookies := os.Getenv("GETCOURSE_COOKIES")
+
+	const getCourseBaseURL = "https://shtpt.getcourse.ru"
 
 	// Database migrations
 	if err := migrations.Run(
@@ -66,17 +68,20 @@ func main() {
 	}
 	defer redisClient.Close()
 
+	sessionStore := storage.NewSessionStore(redisClient)
+
 	// User service initialization
 	userRepository := user.NewRepository(db.DB)
 	userService := user.NewService(userRepository)
 
 	// GetCourse client initialization
-	getCourseClient := getcourse.NewClient("https://shtpt.getcourse.ru", getcourseCookies)
+
+	getCourseClient := getcourse.NewClient(getCourseBaseURL, getcourseCookies)
 
 	state := storage.NewRedisState(redisClient, "docs:hashes")
 
 	// Telegram client initialization
-	telegramClient := telegram.NewClient(telegramToken, telegramChatID, telegramLogChatID, userService)
+	telegramClient := telegram.NewClient(telegramToken, telegramChatID, telegramLogChatID, getCourseBaseURL, userService, sessionStore)
 
 	go func() {
     	if err := telegramClient.Run(ctx); err != nil {

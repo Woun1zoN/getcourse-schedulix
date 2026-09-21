@@ -24,3 +24,7 @@ func (s *Service) GetOrCreate(ctx context.Context, telegramID int64) (*User, err
 
 	return s.repository.Create(ctx, telegramID)
 }
+
+func (s *Service) ConnectGetCourse(ctx context.Context, telegramID int64, cookie string) error {
+    return s.repository.UpdateCookie(ctx, telegramID, cookie)
+}

@@ -10,10 +10,10 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/Woun1zoN/schedule-bot/internal/converter"
-	"github.com/Woun1zoN/schedule-bot/internal/getcourse"
-	"github.com/Woun1zoN/schedule-bot/internal/storage"
-	"github.com/Woun1zoN/schedule-bot/internal/telegram"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/converter"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/getcourse"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/storage"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram"
 )
 
 func InitApp(client *getcourse.Client, state *storage.RedisState, telegramClient *telegram.Client) error {
