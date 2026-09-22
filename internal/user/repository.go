@@ -57,10 +57,13 @@ func (r *Repository) Create(ctx context.Context, telegramID int64) (*User, error
 	return user, nil
 }
 
-func (r *Repository) UpdateCookie(ctx context.Context, telegramID int64, cookie string) error {
-    _, err := r.db.Exec(ctx,
-        `UPDATE users SET getcourse_cookie = $1 WHERE telegram_id = $2`,
-        cookie, telegramID,
-    )
-    return err
+func (r *Repository) UpdateCookie(ctx context.Context, telegramID int64, cookie string,) error {
+	_, err := r.db.Exec(
+		ctx,
+		`UPDATE users SET getcourse_cookie = $1 WHERE telegram_id = $2`,
+		cookie,
+		telegramID,
+	)
+
+	return err
 }

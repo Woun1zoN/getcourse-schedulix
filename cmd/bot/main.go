@@ -72,7 +72,7 @@ func main() {
 
 	// User service initialization
 	userRepository := user.NewRepository(db.DB)
-	userService := user.NewService(userRepository)
+	userService := user.NewService(userRepository, getcourse.NewClient(getCourseBaseURL, getcourseCookies))
 
 	// GetCourse client initialization
 

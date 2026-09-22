@@ -7,7 +7,6 @@ import (
 	"time"
 	"errors"
 	"context"
-	"bytes"
 )
 
 type Client struct {
@@ -70,15 +69,10 @@ func (c *Client) DownloadDocument(document Document) ([]byte, error) {
 	return c.get(document.URL)
 }
 
-func (c *Client) ValidateCookie() error {
-    body, err := c.get(c.baseURL + "/teach/control/")
-    if err != nil {
-        return fmt.Errorf("getcourse: validate: %w", err)
-    }
-
-    if bytes.Contains(body, []byte(`name="email"`)) {
-        return errors.New("getcourse: cookie невалидна или истекла")
-    }
-
-    return nil
+func (c *Client) WithCookies(cookies string) *Client {
+	return &Client{
+		baseURL: c.baseURL,
+		cookies: cookies,
+		client:  c.client,
+	}
 }
