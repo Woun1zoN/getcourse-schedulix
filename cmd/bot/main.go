@@ -70,15 +70,14 @@ func main() {
 
 	sessionStore := storage.NewSessionStore(redisClient)
 
-	// User service initialization
-	userRepository := user.NewRepository(db.DB)
-	userService := user.NewService(userRepository, getcourse.NewClient(getCourseBaseURL, getcourseCookies))
+	state := storage.NewRedisState(redisClient, "docs:hashes")
 
 	// GetCourse client initialization
-
 	getCourseClient := getcourse.NewClient(getCourseBaseURL, getcourseCookies)
 
-	state := storage.NewRedisState(redisClient, "docs:hashes")
+	// User service initialization
+	userRepository := user.NewRepository(db.DB)
+	userService := user.NewService(userRepository, getCourseClient)
 
 	// Telegram client initialization
 	telegramClient := telegram.NewClient(telegramToken, telegramChatID, telegramLogChatID, getCourseBaseURL, userService, sessionStore)
