@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"os/signal"
 	"syscall"
+	"encoding/base64"
 
 	"github.com/joho/godotenv"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/Woun1zoN/getcourse-schedulix/internal/database"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/database/migrations"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/crypto"
 )
 
 func main() {
@@ -27,13 +29,23 @@ func main() {
 	_ = godotenv.Load()
 
 	// Configuration
+	getcourseCookies := os.Getenv("GETCOURSE_COOKIES")
 	databaseURL := os.Getenv("DATABASE_URL")
 	redisAddr := os.Getenv("REDIS_ADDR")
 	redisPassword := os.Getenv("REDIS_PASSWORD")
 	telegramToken := os.Getenv("TELEGRAM_BOT_TOKEN")
 	telegramChatID := os.Getenv("TELEGRAM_CHAT_ID")
 	telegramLogChatID := os.Getenv("TELEGRAM_LOG_CHAT_ID")
-	getcourseCookies := os.Getenv("GETCOURSE_COOKIES")
+
+	key, err := base64.StdEncoding.DecodeString(os.Getenv("COOKIE_ENC_KEY"))
+	if err != nil {
+    	log.Fatal(err)
+	}
+
+	cryptor, err := crypto.NewCryptor(key)
+	if err != nil {
+    	log.Fatal(err)
+	}
 
 	const getCourseBaseURL = "https://shtpt.getcourse.ru"
 
@@ -77,7 +89,7 @@ func main() {
 
 	// User service initialization
 	userRepository := user.NewRepository(db.DB)
-	userService := user.NewService(userRepository, getCourseClient)
+	userService := user.NewService(userRepository, getCourseClient, cryptor)
 
 	// Telegram client initialization
 	telegramClient := telegram.NewClient(telegramToken, telegramChatID, telegramLogChatID, getCourseBaseURL, userService, sessionStore)
