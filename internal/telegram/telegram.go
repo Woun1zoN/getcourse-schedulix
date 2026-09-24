@@ -52,7 +52,7 @@ func NewClient(token, chatID, logChatID, getCourseBaseURL string, userService *u
 	}
 }
 
-func (c *Client) SendPhoto(path string, caption string) error {
+func (c *Client) SendPhoto(chatID int64, path string, caption string) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return err
@@ -62,7 +62,7 @@ func (c *Client) SendPhoto(path string, caption string) error {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 
-	if err := writer.WriteField("chat_id", c.chatID); err != nil {
+	if err := writer.WriteField("chat_id", fmt.Sprintf("%d", chatID)); err != nil {
 		return err
 	}
 

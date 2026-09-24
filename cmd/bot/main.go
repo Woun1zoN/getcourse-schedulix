@@ -29,7 +29,6 @@ func main() {
 	_ = godotenv.Load()
 
 	// Configuration
-	getcourseCookies := os.Getenv("GETCOURSE_COOKIES")
 	databaseURL := os.Getenv("DATABASE_URL")
 	redisAddr := os.Getenv("REDIS_ADDR")
 	redisPassword := os.Getenv("REDIS_PASSWORD")
@@ -82,10 +81,8 @@ func main() {
 
 	sessionStore := storage.NewSessionStore(redisClient)
 
-	state := storage.NewRedisState(redisClient, "docs:hashes")
-
 	// GetCourse client initialization
-	getCourseClient := getcourse.NewClient(getCourseBaseURL, getcourseCookies)
+	getCourseClient := getcourse.NewClient(getCourseBaseURL, "")
 
 	// User service initialization
 	userRepository := user.NewRepository(db.DB)
@@ -103,8 +100,9 @@ func main() {
 	// Run the application
 	runner := app.NewRunner(
     	getCourseClient,
-    	state,
+    	redisClient,
     	telegramClient,
+		userService,
     	5*time.Minute,
 	)
 

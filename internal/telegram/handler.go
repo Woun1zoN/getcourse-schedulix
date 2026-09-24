@@ -35,22 +35,26 @@ func (c *Client) handleMessage(message *Message) error {
 			slog.Int64("telegram_id", message.From.ID),
 		)
 
+		text := "Добро пожаловать в Schedulix!\n\nДля начала подключите GetCourse."
+		btnText := "🔗 Подключить GetCourse"
+
+		if u.GetCourseCookie != nil {
+			text = "С возвращением! GetCourse уже подключён."
+			btnText = "🔄 Переподключить GetCourse"
+		}
+
 		kb := &InlineKeyboardMarkup{
 			InlineKeyboard: [][]InlineKeyboardButton{
 				{
 					{
-						Text:         "🔗 Подключить GetCourse",
+						Text:         btnText,
 						CallbackData: callbackConnectGetCourse,
 					},
 				},
 			},
 		}
 
-		return c.SendMessageWithKeyboard(
-			message.Chat.ID,
-			"Добро пожаловать в Schedulix!\n\nДля начала подключите GetCourse.",
-			kb,
-		)
+		return c.SendMessageWithKeyboard(message.Chat.ID, text, kb)
 	}
 
 	awaiting, err := c.sessionStore.IsAwaitingCookie(ctx, message.From.ID)

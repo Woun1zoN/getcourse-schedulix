@@ -67,3 +67,29 @@ func (r *Repository) UpdateCookie(ctx context.Context, telegramID int64, cookie 
 
 	return err
 }
+
+func (r *Repository) GetActive(ctx context.Context) ([]User, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT id, telegram_id, getcourse_cookie, created_at
+		FROM users
+		WHERE getcourse_cookie IS NOT NULL`)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []User
+
+	for rows.Next() {
+		var u User
+
+		if err := rows.Scan(&u.ID, &u.TelegramID, &u.GetCourseCookie, &u.CreatedAt); err != nil {
+			return nil, err
+		}
+
+		users = append(users, u)
+	}
+
+	return users, rows.Err()
+}

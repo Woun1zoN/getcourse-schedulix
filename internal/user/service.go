@@ -29,7 +29,16 @@ func (s *Service) GetOrCreate(ctx context.Context, telegramID int64) (*User, err
 	}
 
 	if user != nil {
-		return user, nil
+    	if user.GetCourseCookie != nil {
+        	cookie, err := s.cryptor.Decrypt(*user.GetCourseCookie)
+        	if err != nil {
+        	    return nil, fmt.Errorf("decrypt getcourse cookie: %w", err)
+        	}
+
+        	user.GetCourseCookie = &cookie
+    	}
+
+    	return user, nil
 	}
 
 	return s.repository.Create(ctx, telegramID)
@@ -52,4 +61,22 @@ func (s *Service) ConnectGetCourse(ctx context.Context, telegramID int64, cookie
 	}
 
 	return nil
+}
+
+func (s *Service) GetActive(ctx context.Context) ([]User, error) {
+	users, err := s.repository.GetActive(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range users {
+		cookie, err := s.cryptor.Decrypt(*users[i].GetCourseCookie)
+		if err != nil {
+			return nil, fmt.Errorf("decrypt getcourse cookie for user %d: %w", users[i].ID, err)
+		}
+
+		users[i].GetCourseCookie = &cookie
+	}
+
+	return users, nil
 }
