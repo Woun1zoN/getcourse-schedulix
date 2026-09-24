@@ -16,7 +16,6 @@ import (
 
 type Client struct {
 	token        string
-	logChatID    string
 	chatID       string
 	userService  *user.Service
 	client       *http.Client
@@ -42,7 +41,6 @@ type response struct {
 func NewClient(token, chatID, logChatID, getCourseBaseURL string, userService *user.Service, sessionStore *storage.SessionStore) *Client {
 	return &Client{
 		token:        token,
-		logChatID:    logChatID,
 		chatID:       chatID,
 		userService:  userService,
 		client:       &http.Client{},
@@ -125,7 +123,7 @@ func (c *Client) SendPhoto(chatID int64, path string, caption string) error {
 	return nil
 }
 
-func (c *Client) SendNewDocumentLog(documentName, documentURL, lessonID, lessonURL string, fileSize float64, checked, newDocuments int64) error {
+func (c *Client) SendNewDocumentLog(documentName, documentURL, lessonID, lessonURL string, fileSize float64, checked, newDocuments, logChatID int64) error {
     message := fmt.Sprintf(
     "INFO | Получен новый документ\n\n"+
         "📄 [%s](%s)\n\n"+
@@ -141,7 +139,7 @@ func (c *Client) SendNewDocumentLog(documentName, documentURL, lessonID, lessonU
         Text   string `json:"text"`
 		ParseMode string `json:"parse_mode"`
     }{
-        ChatID: c.logChatID,
+        ChatID: fmt.Sprintf("%d", logChatID),
         Text:   message,
 		ParseMode: "Markdown",
     }

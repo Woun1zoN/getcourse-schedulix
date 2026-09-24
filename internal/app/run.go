@@ -44,7 +44,7 @@ func (r *Runner) tick(ctx context.Context) {
 
 		state := storage.NewRedisState(r.redisClient, fmt.Sprintf("docs:hashes:%d", u.ID))
 
-		if err := InitApp(u.TelegramID, client, state, r.telegramClient); err != nil {
+		if err := InitApp(u.TelegramID, u.TelegramID, client, state, r.telegramClient); err != nil {
 			log.Printf("user %d: %v", u.ID, err)
 		}
 	}
