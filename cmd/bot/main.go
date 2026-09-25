@@ -34,7 +34,6 @@ func main() {
 	redisPassword := os.Getenv("REDIS_PASSWORD")
 	telegramToken := os.Getenv("TELEGRAM_BOT_TOKEN")
 	telegramChatID := os.Getenv("TELEGRAM_CHAT_ID")
-	telegramLogChatID := os.Getenv("TELEGRAM_LOG_CHAT_ID")
 
 	key, err := base64.StdEncoding.DecodeString(os.Getenv("COOKIE_ENC_KEY"))
 	if err != nil {
@@ -89,7 +88,7 @@ func main() {
 	userService := user.NewService(userRepository, getCourseClient, cryptor)
 
 	// Telegram client initialization
-	telegramClient := telegram.NewClient(telegramToken, telegramChatID, telegramLogChatID, getCourseBaseURL, userService, sessionStore)
+	telegramClient := telegram.NewClient(telegramToken, telegramChatID, getCourseBaseURL, userService, sessionStore)
 
 	go func() {
     	if err := telegramClient.Run(ctx); err != nil {

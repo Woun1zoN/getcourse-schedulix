@@ -38,7 +38,7 @@ type response struct {
 	Description string `json:"description"`
 }
 
-func NewClient(token, chatID, logChatID, getCourseBaseURL string, userService *user.Service, sessionStore *storage.SessionStore) *Client {
+func NewClient(token, chatID, getCourseBaseURL string, userService *user.Service, sessionStore *storage.SessionStore) *Client {
 	return &Client{
 		token:        token,
 		chatID:       chatID,
