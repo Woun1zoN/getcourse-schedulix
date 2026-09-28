@@ -80,3 +80,7 @@ func (s *Service) GetActive(ctx context.Context) ([]User, error) {
 
 	return users, nil
 }
+
+func (s *Service) SelectStream(ctx context.Context, telegramID, streamID int64) error {
+	return s.repository.UpdateStream(ctx, telegramID, streamID)
+}
