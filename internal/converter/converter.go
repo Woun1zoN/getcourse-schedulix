@@ -24,6 +24,7 @@ func ConvertToJPG(data []byte, filename string) (string, error) {
 	// DOC → PDF
 	cmd := exec.Command(
 		"libreoffice",
+		"-env:UserInstallation=file://"+filepath.Join(tmpDir, "lo-profile"),
 		"--headless",
 		"--convert-to", "pdf",
 		"--outdir", tmpDir,
