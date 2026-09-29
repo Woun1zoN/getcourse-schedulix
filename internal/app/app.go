@@ -16,12 +16,12 @@ import (
 	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram"
 )
 
-func InitApp(chatID, logChatID int64, client *getcourse.Client, state *storage.RedisState, telegramClient *telegram.Client) error {
+func InitApp(chatID, streamID int64, client *getcourse.Client, state *storage.RedisState, telegramClient *telegram.Client) error {
 	if err := client.ValidateCookie(); err != nil {
 		return fmt.Errorf("validate cookie: %w", err)
 	}
 
-	lessonIDs, err := client.GetLessonIDs()
+	lessonIDs, err := client.GetLessonIDs(streamID)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func InitApp(chatID, logChatID int64, client *getcourse.Client, state *storage.R
 
 				sent.Add(1)
 
-				if err := telegramClient.SendNewDocumentLog(document.Name, document.URL, document.ID, lessonURL, fileSize, checked.Load(), newDocuments.Load(), logChatID); err != nil {
+				if err := telegramClient.SendNewDocumentLog(document.Name, document.URL, document.ID, lessonURL, fileSize, checked.Load(), newDocuments.Load(), chatID); err != nil {
 					log.Printf("telegram log %s: %v", document.Name, err)
 				}
 

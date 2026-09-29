@@ -72,6 +72,10 @@ func (c *Client) handleMessage(message *Message) error {
 func (c *Client) handleCallbackQuery(cq *CallbackQuery) error {
     _ = c.answerCallbackQuery(cq.ID)
 
+	if strings.HasPrefix(cq.Data, callbackStreamPrefix) {
+		return c.handleStreamSelected(cq)
+	}
+
     if cq.Data != callbackConnectGetCourse {
         return nil
     }
@@ -132,5 +136,14 @@ func (c *Client) handleCookieInput(ctx context.Context, u *user.User, message *M
 		return fmt.Errorf("clear session state: %w", err)
 	}
 
-	return c.SendMessage(message.Chat.ID, "✅ GetCourse успешно подключён!")
+	if err := c.SendMessage(message.Chat.ID, "✅ GetCourse успешно подключён!"); err != nil {
+		return err
+	}
+
+	streams, err := client.GetStreams()
+	if err != nil {
+		return c.SendMessage(message.Chat.ID, "Не удалось получить список потоков, попробуйте позже.")
+	}
+
+	return c.SendStreamPicker(message.Chat.ID, streams)
 }
