@@ -11,6 +11,7 @@ import (
 )
 
 const callbackConnectGetCourse = "connect_getcourse"
+const callbackPickStream = "pick_stream"
 
 func (c *Client) handleMessage(message *Message) error {
 	ctx := context.Background()
@@ -35,26 +36,38 @@ func (c *Client) handleMessage(message *Message) error {
 			slog.Int64("telegram_id", message.From.ID),
 		)
 
-		text := "Добро пожаловать в Schedulix!\n\nДля начала подключите GetCourse."
-		btnText := "🔗 Подключить GetCourse"
-
-		if u.GetCourseCookie != nil {
-			text = "С возвращением! GetCourse уже подключён."
-			btnText = "🔄 Переподключить GetCourse"
-		}
-
-		kb := &InlineKeyboardMarkup{
-			InlineKeyboard: [][]InlineKeyboardButton{
-				{
-					{
-						Text:         btnText,
-						CallbackData: callbackConnectGetCourse,
-					},
+		switch {
+		case u.GetCourseCookie == nil:
+			kb := &InlineKeyboardMarkup{
+				InlineKeyboard: [][]InlineKeyboardButton{
+					{{Text: "🔗 Подключить GetCourse", CallbackData: callbackConnectGetCourse}},
 				},
-			},
-		}
+			}
+			return c.SendMessageWithKeyboard(message.Chat.ID,
+				"Добро пожаловать в Schedulix!\n\nДля начала подключите GetCourse.", kb)
 
-		return c.SendMessageWithKeyboard(message.Chat.ID, text, kb)
+		case u.GetCourseStreamID == nil:
+			kb := &InlineKeyboardMarkup{
+				InlineKeyboard: [][]InlineKeyboardButton{
+					{{Text: "📚 Выбрать поток", CallbackData: callbackPickStream}},
+					{{Text: "🔄 Переподключить GetCourse", CallbackData: callbackConnectGetCourse}},
+				},
+			}
+
+			return c.SendMessageWithKeyboard(message.Chat.ID,
+				"С возвращением! GetCourse подключён, но поток ещё не выбран.\n\nБез потока расписания приходить не будут.", kb)
+
+		default:
+			kb := &InlineKeyboardMarkup{
+				InlineKeyboard: [][]InlineKeyboardButton{
+					{{Text: "🔄 Переподключить GetCourse", CallbackData: callbackConnectGetCourse}},
+					{{Text: "🔀 Сменить поток", CallbackData: callbackPickStream}},
+				},
+			}
+
+			return c.SendMessageWithKeyboard(message.Chat.ID,
+				"С возвращением! GetCourse уже подключён.", kb)
+		}
 	}
 
 	awaiting, err := c.sessionStore.IsAwaitingCookie(ctx, message.From.ID)
@@ -74,6 +87,10 @@ func (c *Client) handleCallbackQuery(cq *CallbackQuery) error {
 
 	if strings.HasPrefix(cq.Data, callbackStreamPrefix) {
 		return c.handleStreamSelected(cq)
+	}
+
+	if cq.Data == callbackPickStream {
+		return c.handlePickStream(cq)
 	}
 
     if cq.Data != callbackConnectGetCourse {
@@ -146,4 +163,24 @@ func (c *Client) handleCookieInput(ctx context.Context, u *user.User, message *M
 	}
 
 	return c.SendStreamPicker(message.Chat.ID, streams)
+}
+
+func (c *Client) handlePickStream(cq *CallbackQuery) error {
+	u, err := c.userService.GetOrCreate(context.Background(), cq.From.ID)
+	if err != nil {
+		return err
+	}
+
+	if u.GetCourseCookie == nil {
+		return c.SendMessage(cq.Message.Chat.ID, "Сначала подключите GetCourse.")
+	}
+
+	client := getcourse.NewClient(c.getCourseBaseURL, *u.GetCourseCookie)
+
+	streams, err := client.GetStreams()
+	if err != nil {
+		return c.SendMessage(cq.Message.Chat.ID, "Не удалось получить список потоков, попробуйте позже.")
+	}
+
+	return c.SendStreamPicker(cq.Message.Chat.ID, streams)
 }
