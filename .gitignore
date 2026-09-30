@@ -36,6 +36,3 @@ go.work.sum
 tmp/
 bin/
 *.log
-
-# Jason Statham
-state.json
