@@ -38,6 +38,10 @@ type response struct {
 	Description string `json:"description"`
 }
 
+type linkPreviewOptions struct {
+	IsDisabled bool `json:"is_disabled"`
+}
+
 func NewClient(token, chatID, getCourseBaseURL string, userService *user.Service, sessionStore *storage.SessionStore) *Client {
 	return &Client{
 		token:        token,
@@ -48,6 +52,19 @@ func NewClient(token, chatID, getCourseBaseURL string, userService *user.Service
         sessionStore: sessionStore,
         getCourseBaseURL: getCourseBaseURL,
 	}
+}
+
+const (
+	ParseModeMarkdown   = "Markdown"
+	ParseModeMarkdownV2 = "MarkdownV2"
+)
+
+func (c *Client) SendMessageWithKeyboard(chatID int64, text string, kb *InlineKeyboardMarkup) error {
+	return c.SendMessageWithKeyboardMode(chatID, text, ParseModeMarkdown, kb)
+}
+
+func (c *Client) SendMessageMode(chatID int64, text, parseMode string) error {
+	return c.SendMessageWithKeyboardMode(chatID, text, parseMode, nil)
 }
 
 func (c *Client) SendPhoto(chatID int64, path string, caption string) error {
@@ -237,13 +254,14 @@ func (c *Client) SendMessage(chatID int64, text string) error {
     return nil
 }
 
-func (c *Client) SendMessageWithKeyboard(chatID int64, text string, kb *InlineKeyboardMarkup) error {
+func (c *Client) SendMessageWithKeyboardMode(chatID int64, text, parseMode string, kb *InlineKeyboardMarkup) error {
     payload := struct {
-        ChatID      int64                  `json:"chat_id"`
-        Text        string                 `json:"text"`
-        ParseMode   string                 `json:"parse_mode"`
-        ReplyMarkup *InlineKeyboardMarkup  `json:"reply_markup,omitempty"`
-    }{chatID, text, "Markdown", kb}
+		ChatID      int64                 `json:"chat_id"`
+		Text        string                `json:"text"`
+		ParseMode   string                `json:"parse_mode"`
+		ReplyMarkup *InlineKeyboardMarkup `json:"reply_markup,omitempty"`
+        LinkPreviewOptions *linkPreviewOptions   `json:"link_preview_options,omitempty"`
+	}{chatID, text, parseMode, kb, &linkPreviewOptions{IsDisabled: true}}
 
     data, err := json.Marshal(payload)
     if err != nil {

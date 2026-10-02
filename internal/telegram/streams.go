@@ -13,7 +13,7 @@ const callbackStreamPrefix = "stream:"
 
 func (c *Client) SendStreamPicker(chatID int64, streams []getcourse.Stream) error {
 	if len(streams) == 0 {
-		return c.SendMessage(chatID, "Не нашёл ни одного потока на вашем аккаунте.")
+		return c.SendMessage(chatID, "На вашем аккаунте нет ниодного тренинга.")
 	}
 
 	rows := make([][]InlineKeyboardButton, 0, len(streams))
@@ -26,7 +26,7 @@ func (c *Client) SendStreamPicker(chatID int64, streams []getcourse.Stream) erro
 
 	return c.SendMessageWithKeyboard(
 		chatID,
-		"Выберите поток, за которым следить:",
+		"🔗 Выберите тренинг, за которым следить:",
 		&InlineKeyboardMarkup{InlineKeyboard: rows},
 	)
 }
@@ -41,5 +41,5 @@ func (c *Client) handleStreamSelected(cq *CallbackQuery) error {
 		return fmt.Errorf("select stream: %w", err)
 	}
 
-	return c.SendMessage(cq.Message.Chat.ID, "✅ Поток выбран. Новые расписания будут приходить автоматически.")
+	return c.SendMessage(cq.Message.Chat.ID, "✅ Тренинг выбран. Содержимое уроков с этого момента будет приходить автоматически.")
 }

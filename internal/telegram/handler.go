@@ -43,25 +43,23 @@ func (c *Client) handleMessage(message *Message) error {
 					{{Text: "🔗 Подключить GetCourse", CallbackData: callbackConnectGetCourse}},
 				},
 			}
-			return c.SendMessageWithKeyboard(message.Chat.ID,
-				"Добро пожаловать в Schedulix!\n\nДля начала подключите GetCourse.", kb)
+			return c.SendMessageWithKeyboardMode(message.Chat.ID, welcomeText, ParseModeMarkdownV2, kb)
 
 		case u.GetCourseStreamID == nil:
 			kb := &InlineKeyboardMarkup{
 				InlineKeyboard: [][]InlineKeyboardButton{
-					{{Text: "📚 Выбрать поток", CallbackData: callbackPickStream}},
-					{{Text: "🔄 Переподключить GetCourse", CallbackData: callbackConnectGetCourse}},
+					{{Text: "🔗 Выбрать тренинг", CallbackData: callbackPickStream}},
 				},
 			}
 
 			return c.SendMessageWithKeyboard(message.Chat.ID,
-				"С возвращением! GetCourse подключён, но поток ещё не выбран.\n\nБез потока расписания приходить не будут.", kb)
+				"С возвращением! GetCourse подключён, но тренинг ещё не выбран.\n\nБез тренинга расписания приходить не будут.", kb)
 
 		default:
 			kb := &InlineKeyboardMarkup{
 				InlineKeyboard: [][]InlineKeyboardButton{
 					{{Text: "🔄 Переподключить GetCourse", CallbackData: callbackConnectGetCourse}},
-					{{Text: "🔀 Сменить поток", CallbackData: callbackPickStream}},
+					{{Text: "🔀 Сменить тренинг", CallbackData: callbackPickStream}},
 				},
 			}
 
@@ -101,40 +99,11 @@ func (c *Client) handleCallbackQuery(cq *CallbackQuery) error {
         return err
     }
 
-    return c.SendMessage(cq.Message.Chat.ID,
-
-    "🔗 Подключение GetCourse\n\n"+
-
-        "Установите Cookie-Editor для вашего браузера:\n"+
-        "• [Google Chrome](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm)\n"+
-        "• [Яндекс Браузер](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm)\n"+
-        "• [Mozilla Firefox](https://addons.mozilla.org/en-US/firefox/addon/cookie-editor/)\n\n"+
-
-        "После установки:\n"+
-        "1. Войдите в shtpt.getcourse.ru под своим аккаунтом.\n"+
-        "2. Кликните по иконке Cookie-Editor на этой же вкладке.\n"+
-        "3. Нажмите Export → выберите формат «Header String».\n"+
-        "4. Вставьте скопированную строку сюда одним сообщением.\n\n"+
-
-        "Не получается с расширением? Инструкция через DevTools:\n"+
-        "1. Откройте shtpt.getcourse.ru и войдите в аккаунт.\n"+
-        "2. Нажмите F12 → вкладка Network.\n"+
-        "3. Обновите страницу (F5) и кликните на любой запрос слева.\n"+
-        "4. Во вкладке Headers найдите «cookie:» среди Request Headers.\n"+
-        "5. Скопируйте значение целиком, без слова «cookie:», и пришлите сюда.\n\n"+
-
-        "⚠️ Эта строка даёт полный доступ к вашему аккаунту GetCourse. "+
-        "Никому её не передавайте, кроме этого бота.",
-
-)
+    return c.SendMessageMode(cq.Message.Chat.ID, connectGetCourseMessage, ParseModeMarkdownV2)
 }
 
 func (c *Client) handleCookieInput(ctx context.Context, u *user.User, message *Message) error {
 	cookie := strings.TrimSpace(message.Text)
-
-	if cookie == "" {
-		return c.SendMessage(message.Chat.ID, "Cookie пустая, попробуйте ещё раз.")
-	}
 
 	client := getcourse.NewClient(c.getCourseBaseURL, cookie)
 
@@ -153,13 +122,9 @@ func (c *Client) handleCookieInput(ctx context.Context, u *user.User, message *M
 		return fmt.Errorf("clear session state: %w", err)
 	}
 
-	if err := c.SendMessage(message.Chat.ID, "✅ GetCourse успешно подключён!"); err != nil {
-		return err
-	}
-
 	streams, err := client.GetStreams()
 	if err != nil {
-		return c.SendMessage(message.Chat.ID, "Не удалось получить список потоков, попробуйте позже.")
+		return c.SendMessage(message.Chat.ID, "Не удалось получить список тренингов, попробуйте позже.")
 	}
 
 	return c.SendStreamPicker(message.Chat.ID, streams)
@@ -179,7 +144,7 @@ func (c *Client) handlePickStream(cq *CallbackQuery) error {
 
 	streams, err := client.GetStreams()
 	if err != nil {
-		return c.SendMessage(cq.Message.Chat.ID, "Не удалось получить список потоков, попробуйте позже.")
+		return c.SendMessage(cq.Message.Chat.ID, "Не удалось получить список тренингов, попробуйте позже.")
 	}
 
 	return c.SendStreamPicker(cq.Message.Chat.ID, streams)
