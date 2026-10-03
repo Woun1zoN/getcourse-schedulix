@@ -141,9 +141,13 @@ func (c *Client) handleCookieInput(ctx context.Context, u *user.User, message *M
 	if u.GetCourseStreamID != nil {
 		for _, s := range streams {
 			if s.ID == *u.GetCourseStreamID {
-				return nil
+				return c.SendMessage(message.Chat.ID, "_✅ GetCourse переподключён. Выбранный тренинг сохранён._")
 			}
 		}
+	}
+
+	if err := c.SendMessage(message.Chat.ID, "_✅ GetCourse успешно подключён!_"); err != nil {
+		return err
 	}
 
 	return c.SendStreamPicker(message.Chat.ID, streams)
