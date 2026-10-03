@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
     "net/http"
+	"log"
 )
 
 type Update struct {
@@ -37,7 +38,7 @@ type User struct {
 
 func (c *Client) getUpdates(ctx context.Context, offset int) ([]Update, error) {
 	url := fmt.Sprintf(
-		"https://api.telegram.org/bot%s/getUpdates?offset=%d",
+		"https://api.telegram.org/bot%s/getUpdates?offset=%d&timeout=30",
 		c.token,
 		offset,
 	)
@@ -88,17 +89,19 @@ func (c *Client) Run(ctx context.Context) error {
 		}
 
 		for _, update := range updates {
-    		offset = update.UpdateID + 1
+			offset = update.UpdateID + 1
 
-    		switch {
-    		case update.CallbackQuery != nil:
-        		if err := c.handleCallbackQuery(update.CallbackQuery); err != nil {
-            		return err
-        		}
-    		case update.Message != nil:
-        		if err := c.handleMessage(update.Message); err != nil {
-        		    return err
-        		}
+			var err error
+
+			switch {
+			case update.CallbackQuery != nil:
+				err = c.handleCallbackQuery(update.CallbackQuery)
+			case update.Message != nil:
+				err = c.handleMessage(update.Message)
+			}
+
+			if err != nil {
+				log.Printf("telegram: update %d: %v", update.UpdateID, err)
 			}
 		}
 	}
