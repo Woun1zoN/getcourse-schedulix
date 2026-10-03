@@ -8,8 +8,21 @@ import (
 )
 
 type Stream struct {
-	ID   int64
-	Name string
+	ID      int64
+	Name    string
+	Lessons string
+	Teacher string
+}
+
+func (s Stream) Info() string {
+	parts := make([]string, 0, 2)
+	if s.Lessons != "" {
+		parts = append(parts, s.Lessons)
+	}
+	if s.Teacher != "" {
+		parts = append(parts, s.Teacher)
+	}
+	return strings.Join(parts, " · ")
 }
 
 func (c *Client) GetLessonIDs(streamID int64) ([]string, error) {
@@ -75,65 +88,36 @@ func (c *Client) GetStreams() ([]Stream, error) {
 		return nil, err
 	}
 
-	const marker = "/teach/control/stream/view/id/"
-
-	names := make(map[int64]string)
+	byID := make(map[int64]*Stream)
 	var order []int64
 
 	var walk func(*html.Node)
 	walk = func(n *html.Node) {
 		if n.Type == html.ElementNode && n.Data == "a" {
-			for _, attr := range n.Attr {
-				if attr.Key != "href" {
-					continue
-				}
-
-				i := strings.Index(attr.Val, marker)
-				if i == -1 {
-					continue
-				}
-
-				rest := attr.Val[i+len(marker):]
-
-				end := 0
-				for end < len(rest) && rest[end] >= '0' && rest[end] <= '9' {
-					end++
-				}
-
-				id, err := strconv.ParseInt(rest[:end], 10, 64)
-				if err != nil {
-					continue
-				}
-
-				if _, seen := names[id]; !seen {
+			if id, ok := streamIDFromLink(n); ok {
+				s, seen := byID[id]
+				if !seen {
+					s = &Stream{ID: id}
+					byID[id] = s
 					order = append(order, id)
-					names[id] = ""
 				}
-
-				if text := nodeText(n); names[id] == "" && text != "" {
-					names[id] = text
-				}
+				fillStream(s, n)
 			}
 		}
-
-		for child := n.FirstChild; child != nil; child = child.NextSibling {
-			walk(child)
+		for ch := n.FirstChild; ch != nil; ch = ch.NextSibling {
+			walk(ch)
 		}
 	}
-
 	walk(doc)
 
 	streams := make([]Stream, 0, len(order))
 	for _, id := range order {
-		name := names[id]
-
-		if name == "" {
-			name = "Поток " + strconv.FormatInt(id, 10)
+		s := *byID[id]
+		if s.Name == "" {
+			s.Name = "Тренинг " + strconv.FormatInt(id, 10)
 		}
-
-		streams = append(streams, Stream{ID: id, Name: name})
+		streams = append(streams, s)
 	}
-
 	return streams, nil
 }
 
@@ -155,4 +139,90 @@ func nodeText(n *html.Node) string {
 	rec(n)
 
 	return strings.Join(strings.Fields(sb.String()), " ")
+}
+
+func streamIDFromLink(a *html.Node) (int64, bool) {
+	const marker = "/teach/control/stream/view/id/"
+
+	for _, attr := range a.Attr {
+		if attr.Key != "href" {
+			continue
+		}
+		i := strings.Index(attr.Val, marker)
+		if i == -1 {
+			continue
+		}
+		rest := attr.Val[i+len(marker):]
+		end := 0
+		for end < len(rest) && rest[end] >= '0' && rest[end] <= '9' {
+			end++
+		}
+		if id, err := strconv.ParseInt(rest[:end], 10, 64); err == nil {
+			return id, true
+		}
+	}
+	return 0, false
+}
+
+func fillStream(s *Stream, a *html.Node) {
+	if s.Name == "" {
+		title := findNode(a, func(n *html.Node) bool {
+			return n.Type == html.ElementNode && n.Data == "span" && hasClass(n, "stream-title")
+		})
+		if title != nil {
+			s.Name = nodeText(title)
+		}
+	}
+
+	if s.Lessons == "" {
+		if b := findNode(a, isTag("b")); b != nil {
+			s.Lessons = trimDot(nodeText(b))
+		}
+	}
+
+	if s.Teacher == "" {
+		if d := findNode(a, isTag("div")); d != nil {
+			var sb strings.Builder
+			for ch := d.FirstChild; ch != nil; ch = ch.NextSibling {
+				if ch.Type == html.TextNode {
+					sb.WriteString(ch.Data)
+					sb.WriteByte(' ')
+				}
+			}
+			s.Teacher = trimDot(strings.Join(strings.Fields(sb.String()), " "))
+		}
+	}
+}
+
+func trimDot(s string) string {
+	return strings.TrimSuffix(strings.TrimSpace(s), ".")
+}
+
+func isTag(name string) func(*html.Node) bool {
+	return func(n *html.Node) bool { return n.Type == html.ElementNode && n.Data == name }
+}
+
+func hasClass(n *html.Node, class string) bool {
+	for _, a := range n.Attr {
+		if a.Key == "class" {
+			for _, c := range strings.Fields(a.Val) {
+				if c == class {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func findNode(n *html.Node, match func(*html.Node) bool) *html.Node {
+	if match(n) {
+		return n
+	}
+	for ch := n.FirstChild; ch != nil; ch = ch.NextSibling {
+		if r := findNode(ch, match); r != nil {
+			return r
+		}
+	}
+	return nil
 }

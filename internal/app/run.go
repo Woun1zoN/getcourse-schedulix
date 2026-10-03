@@ -40,13 +40,11 @@ func (r *Runner) tick(ctx context.Context) {
 	}
 
 	for _, u := range users {
-		client := r.baseClient.WithCookies(*u.GetCourseCookie)
-
 		if u.GetCourseStreamID == nil {
-			r.remindStreamSelection(ctx, client, u)
 			continue
 		}
 
+		client := r.baseClient.WithCookies(*u.GetCourseCookie)
 		state := storage.NewRedisState(r.redisClient, fmt.Sprintf("docs:hashes:%d", u.ID))
 
 		if err := InitApp(u.TelegramID, *u.GetCourseStreamID, client, state, r.telegramClient); err != nil {
@@ -70,25 +68,4 @@ func (r *Runner) Run(ctx context.Context) {
 			return
 		}
 	}
-}
-
-func (r *Runner) remindStreamSelection(ctx context.Context, client *getcourse.Client, u user.User) {
-	key := fmt.Sprintf("stream_prompt:%d", u.TelegramID)
-
-	if n, err := r.redisClient.Exists(ctx, key).Result(); err != nil || n > 0 {
-		return
-	}
-
-	streams, err := client.GetStreams()
-	if err != nil {
-		log.Printf("user %d: get streams: %v", u.ID, err)
-		return
-	}
-
-	if err := r.telegramClient.SendStreamPicker(u.TelegramID, streams); err != nil {
-		log.Printf("user %d: send stream picker: %v", u.ID, err)
-		return
-	}
-
-	r.redisClient.Set(ctx, key, 1, 24*time.Hour)
 }

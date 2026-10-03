@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Woun1zoN/getcourse-schedulix/internal/getcourse"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
 )
 
 const callbackStreamPrefix = "stream:"
@@ -42,4 +43,23 @@ func (c *Client) handleStreamSelected(cq *CallbackQuery) error {
 	}
 
 	return c.SendMessage(cq.Message.Chat.ID, "✅ Тренинг выбран. Содержимое уроков с этого момента будет приходить автоматически.")
+}
+
+func (c *Client) currentStream(u *user.User) *getcourse.Stream {
+	if u.GetCourseCookie == nil || u.GetCourseStreamID == nil {
+		return nil
+	}
+
+	client := getcourse.NewClient(c.getCourseBaseURL, *u.GetCourseCookie)
+	streams, err := client.GetStreams()
+	if err != nil {
+		return nil
+	}
+
+	for _, s := range streams {
+		if s.ID == *u.GetCourseStreamID {
+			return &s
+		}
+	}
+	return nil
 }

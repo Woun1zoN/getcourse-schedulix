@@ -53,18 +53,29 @@ func (c *Client) handleMessage(message *Message) error {
 			}
 
 			return c.SendMessageWithKeyboard(message.Chat.ID,
-				"С возвращением! GetCourse подключён, но тренинг ещё не выбран.\n\nБез тренинга расписания приходить не будут.", kb)
+				"➡ _GetCourse подключён, но тренинг ещё не выбран_.\n\nБез тренинга материалы приходить не будут.", kb)
 
 		default:
-			kb := &InlineKeyboardMarkup{
-				InlineKeyboard: [][]InlineKeyboardButton{
-					{{Text: "🔄 Переподключить GetCourse", CallbackData: callbackConnectGetCourse}},
-					{{Text: "🔀 Сменить тренинг", CallbackData: callbackPickStream}},
-				},
+			text := "_✅ GetCourse подключён_\n\nНовые материалы будут приходить автоматически\\."
+
+			if s := c.currentStream(u); s != nil {
+				text = "_✅ GetCourse подключён_\n\n• Выбранный тренинг:\n>📚 *" +
+					escapeMarkdownV2(s.Name) + "*" + "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
+
+				if info := s.Info(); info != "" {
+					text += "\n>" + escapeMarkdownV2(info)
+				}
+
+				text += "\n\nНовые материалы будут приходить автоматически\\."
 			}
 
-			return c.SendMessageWithKeyboard(message.Chat.ID,
-				"С возвращением! GetCourse уже подключён.", kb)
+			kb := &InlineKeyboardMarkup{
+				InlineKeyboard: [][]InlineKeyboardButton{
+					{{Text: "🔀 Сменить тренинг", CallbackData: callbackPickStream}},
+					{{Text: "🔄 Переподключить GetCourse", CallbackData: callbackConnectGetCourse}},
+				},
+			}
+			return c.SendMessageWithKeyboardMode(message.Chat.ID, text, ParseModeMarkdownV2, kb)
 		}
 	}
 
@@ -125,6 +136,14 @@ func (c *Client) handleCookieInput(ctx context.Context, u *user.User, message *M
 	streams, err := client.GetStreams()
 	if err != nil {
 		return c.SendMessage(message.Chat.ID, "Не удалось получить список тренингов, попробуйте позже.")
+	}
+
+	if u.GetCourseStreamID != nil {
+		for _, s := range streams {
+			if s.ID == *u.GetCourseStreamID {
+				return nil
+			}
+		}
 	}
 
 	return c.SendStreamPicker(message.Chat.ID, streams)

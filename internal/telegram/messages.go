@@ -1,6 +1,18 @@
 package telegram
 
-import "strings"
+import (
+	"strings"
+)
+
+var mdV2Replacer = strings.NewReplacer(
+	`\`, `\\`, "_", `\_`, "*", `\*`, "[", `\[`, "]", `\]`, "(", `\(`, ")", `\)`,
+	"~", `\~`, "`", "\\`", ">", `\>`, "#", `\#`, "+", `\+`, "-", `\-`,
+	"=", `\=`, "|", `\|`, "{", `\{`, "}", `\}`, ".", `\.`, "!", `\!`,
+)
+
+func escapeMarkdownV2(s string) string {
+	return mdV2Replacer.Replace(s)
+}
 
 var welcomeText = strings.NewReplacer("{pad}", strings.Repeat("\u2800", 10)).Replace(`_Привет\! Добро пожаловать в GetCourse Schedulix\! 👋_
 
