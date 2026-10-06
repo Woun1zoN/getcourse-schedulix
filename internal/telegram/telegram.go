@@ -24,15 +24,6 @@ type Client struct {
     getCourseBaseURL string
 }
 
-type InlineKeyboardButton struct {
-    Text         string `json:"text"`
-    CallbackData string `json:"callback_data"`
-}
-
-type InlineKeyboardMarkup struct {
-    InlineKeyboard [][]InlineKeyboardButton `json:"inline_keyboard"`
-}
-
 type response struct {
 	OK          bool   `json:"ok"`
 	Description string `json:"description"`
@@ -254,14 +245,14 @@ func (c *Client) SendMessage(chatID int64, text string) error {
     return nil
 }
 
-func (c *Client) SendMessageWithKeyboardMode(chatID int64, text, parseMode string, kb *InlineKeyboardMarkup) error {
-    payload := struct {
-		ChatID      int64                 `json:"chat_id"`
-		Text        string                `json:"text"`
-		ParseMode   string                `json:"parse_mode"`
-		ReplyMarkup *InlineKeyboardMarkup `json:"reply_markup,omitempty"`
-        LinkPreviewOptions *linkPreviewOptions   `json:"link_preview_options,omitempty"`
-	}{chatID, text, parseMode, kb, &linkPreviewOptions{IsDisabled: true}}
+func (c *Client) SendMessageWithKeyboardMode(chatID int64, text, parseMode string, replyMarkup any) error {
+    payload := SendMessagePayload{
+        ChatID: chatID,
+        Text: text,
+        ParseMode: parseMode,
+        ReplyMarkup: replyMarkup,
+        LinkPreviewOptions: &linkPreviewOptions{IsDisabled: true},
+    }
 
     data, err := json.Marshal(payload)
     if err != nil {
@@ -288,6 +279,62 @@ func (c *Client) SendMessageWithKeyboardMode(chatID int64, text, parseMode strin
     }
 
     return nil
+}
+
+const (
+    chatRequestID = 1
+	chatRequestGroup = 1
+	chatRequestChannel = 2
+)
+
+func (c *Client) SendChatPicker(chatID int64) error {
+    kb := &ReplyKeyboardMarkup{
+	    ResizeKeyboard:  true,
+	    OneTimeKeyboard: true,
+	    Keyboard: [][]KeyboardButton{
+	    	{
+	    		{
+	    			Text: "👤 Личные сообщения",
+	    		},
+	    	},
+	    	{
+	    		{
+	    			Text: "👥 Выбрать группу",
+	    			RequestChat: &KeyboardButtonRequestChat{
+	    				RequestID:     chatRequestGroup,
+	    				ChatIsChannel: false,
+	    				BotIsMember:   true,
+	    				UserAdministratorRights: &ChatAdministratorRights{
+	    					CanManageChat: true,
+		    			},
+		    		},
+		    	},
+		    },
+		    {
+		    	{
+		    		Text: "📢 Выбрать канал",
+		    		RequestChat: &KeyboardButtonRequestChat{
+		    			RequestID:     chatRequestChannel,
+		    			ChatIsChannel: true,
+		    			BotIsMember:   true,
+		    			UserAdministratorRights: &ChatAdministratorRights{
+		    				CanManageChat: true,
+		    			},
+		    			BotAdministratorRights: &ChatAdministratorRights{
+		    				CanPostMessages: true,
+		    			},
+		    		},
+		    	},
+		    },
+	    },
+    }
+
+    return c.SendMessageWithKeyboardMode(
+	    chatID,
+	    "Выберите чат, куда Schedulix будет отправлять новые материалы.",
+	    "",
+	    kb,
+    )
 }
 
 func (c *Client) answerCallbackQuery(id string) error {

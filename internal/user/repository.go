@@ -103,3 +103,25 @@ func (r *Repository) UpdateStream(ctx context.Context, telegramID, streamID int6
 	)
 	return err
 }
+
+func (r *Repository) UpdateTargetChat(ctx context.Context, telegramID int64, chatID int64, title string) error {
+    _, err := r.db.Exec(
+        ctx,
+        `UPDATE users SET target_chat_id = $1, target_chat_title = $2 WHERE telegram_id = $3`,
+        chatID,
+        title,
+        telegramID,
+    )
+
+    return err
+}
+
+func (r *Repository) ResetTargetChat(ctx context.Context, telegramID int64) error {
+    _, err := r.db.Exec(
+        ctx,
+        `UPDATE users SET target_chat_id = telegram_id, target_chat_title = NULL WHERE telegram_id = $1`,
+        telegramID,
+    )
+
+    return err
+}

@@ -16,7 +16,7 @@ import (
 	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram"
 )
 
-func InitApp(chatID, streamID int64, client *getcourse.Client, state *storage.RedisState, telegramClient *telegram.Client) error {
+func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, state *storage.RedisState, telegramClient *telegram.Client) error {
 	if err := client.ValidateCookie(); err != nil {
 		return fmt.Errorf("validate cookie: %w", err)
 	}

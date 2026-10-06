@@ -47,7 +47,7 @@ func (r *Runner) tick(ctx context.Context) {
 		client := r.baseClient.WithCookies(*u.GetCourseCookie)
 		state := storage.NewRedisState(r.redisClient, fmt.Sprintf("docs:hashes:%d", u.ID))
 
-		if err := InitApp(u.TelegramID, *u.GetCourseStreamID, client, state, r.telegramClient); err != nil {
+		if err := InitApp(u.TelegramID, u.TargetChatID, *u.GetCourseStreamID, client, state, r.telegramClient); err != nil {
 			log.Printf("user %d: %v", u.ID, err)
 		}
 	}

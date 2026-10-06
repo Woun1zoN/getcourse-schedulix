@@ -12,6 +12,7 @@ import (
 
 const callbackConnectGetCourse = "connect_getcourse"
 const callbackPickStream = "pick_stream"
+const callbackPickChat = "pick_chat"
 
 func (c *Client) handleMessage(message *Message) error {
 	ctx := context.Background()
@@ -23,6 +24,10 @@ func (c *Client) handleMessage(message *Message) error {
 	u, err := c.userService.GetOrCreate(ctx, message.From.ID)
 	if err != nil {
 		return fmt.Errorf("get or create user: %w", err)
+	}
+
+	if message.ChatShared != nil {
+    	return c.handleChatShared(message)
 	}
 
 	if message.Text == "/start" {
@@ -72,6 +77,7 @@ func (c *Client) handleMessage(message *Message) error {
 			kb := &InlineKeyboardMarkup{
 				InlineKeyboard: [][]InlineKeyboardButton{
 					{{Text: "🔀 Сменить тренинг", CallbackData: callbackPickStream}},
+					{{Text: "📨 Сменить чат", CallbackData: callbackPickChat}},
 					{{Text: "🔄 Переподключить GetCourse", CallbackData: callbackConnectGetCourse}},
 				},
 			}
@@ -105,6 +111,10 @@ func (c *Client) handleCallbackQuery(cq *CallbackQuery) error {
     if cq.Data != callbackConnectGetCourse {
         return nil
     }
+
+	if cq.Data == callbackPickChat {
+    	return c.SendChatPicker(cq.Message.Chat.ID)
+	}
 
     if err := c.sessionStore.SetAwaitingCookie(context.Background(), cq.From.ID); err != nil {
         return err
@@ -171,4 +181,49 @@ func (c *Client) handlePickStream(cq *CallbackQuery) error {
 	}
 
 	return c.SendStreamPicker(cq.Message.Chat.ID, streams)
+}
+
+func (c *Client) handleChatShared(message *Message) error {
+    if message.ChatShared == nil {
+        return nil
+    }
+
+    shared := message.ChatShared
+
+    if shared.RequestID != chatRequestID {
+        return nil
+    }
+
+    if err := c.userService.SelectTargetChat(
+        context.Background(),
+        message.From.ID,
+        shared.ChatID,
+        shared.Title,
+    ); err != nil {
+        return fmt.Errorf("select target chat: %w", err)
+    }
+
+    if err := c.SendMessageAndRemoveKeyboard(message.Chat.ID, "✅ Чат выбран."); err != nil {
+        return err
+    }
+
+    title := shared.Title
+    if title == "" {
+        title = fmt.Sprintf("%d", shared.ChatID)
+    }
+
+    return c.SendMessage(
+        message.Chat.ID,
+        fmt.Sprintf(
+            "✅ Чат выбран.\n\nТеперь новые материалы будут отправляться в «%s».",
+            title,
+        ),
+    )
+}
+
+func (c *Client) SendMessageAndRemoveKeyboard(chatID int64, text string) error {
+	return c.SendMessageWithKeyboardMode(chatID, text, ParseModeMarkdownV2, &ReplyKeyboardRemove{
+			RemoveKeyboard: true,
+		},
+	)
 }

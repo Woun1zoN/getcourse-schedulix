@@ -7,5 +7,7 @@ type User struct {
 	TelegramID        int64
 	GetCourseCookie   *string
 	GetCourseStreamID *int64
+	TargetChatID      int64
+	TargetChatTitle   *string
 	CreatedAt         time.Time
 }

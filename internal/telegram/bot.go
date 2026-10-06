@@ -8,30 +8,6 @@ import (
 	"log"
 )
 
-type Update struct {
-    UpdateID      int            `json:"update_id"`
-    Message       *Message       `json:"message"`
-    CallbackQuery *CallbackQuery `json:"callback_query"`
-}
-
-type Message struct {
-    From *User `json:"from"`
-	Chat Chat  `json:"chat"`
-    Text string `json:"text"`
-}
-
-type CallbackQuery struct {
-    ID      string  `json:"id"`
-    From    User    `json:"from"`
-    Message Message `json:"message"`
-    Data    string  `json:"data"`
-}
-
-type Chat struct {
-    ID int64 `json:"id"`
-	Type string `json:"type"`
-}
-
 type User struct {
     ID int64 `json:"id"`
 }
