@@ -85,6 +85,13 @@ func (c *Client) handleMessage(message *Message) error {
 		}
 	}
 
+	if message.Text == "👤 Личные сообщения" {
+		if err := c.userService.ResetTargetChat(ctx, message.From.ID); err != nil {
+			return fmt.Errorf("reset target chat: %w", err)
+		}
+		return c.SendMessageAndRemoveKeyboard(message.Chat.ID, "✅ Материалы будут приходить в личные сообщения\\.")
+	}
+
 	awaiting, err := c.sessionStore.IsAwaitingCookie(ctx, message.From.ID)
 	if err != nil {
 		return fmt.Errorf("check session state: %w", err)
@@ -98,29 +105,26 @@ func (c *Client) handleMessage(message *Message) error {
 }
 
 func (c *Client) handleCallbackQuery(cq *CallbackQuery) error {
-    _ = c.answerCallbackQuery(cq.ID)
+	_ = c.answerCallbackQuery(cq.ID)
 
-	if strings.HasPrefix(cq.Data, callbackStreamPrefix) {
+	switch {
+	case strings.HasPrefix(cq.Data, callbackStreamPrefix):
 		return c.handleStreamSelected(cq)
-	}
 
-	if cq.Data == callbackPickStream {
+	case cq.Data == callbackPickStream:
 		return c.handlePickStream(cq)
+
+	case cq.Data == callbackPickChat:
+		return c.SendChatPicker(cq.Message.Chat.ID)
+
+	case cq.Data == callbackConnectGetCourse:
+		if err := c.sessionStore.SetAwaitingCookie(context.Background(), cq.From.ID); err != nil {
+			return err
+		}
+		return c.SendMessageMode(cq.Message.Chat.ID, connectGetCourseMessage, ParseModeMarkdownV2)
 	}
 
-    if cq.Data != callbackConnectGetCourse {
-        return nil
-    }
-
-	if cq.Data == callbackPickChat {
-    	return c.SendChatPicker(cq.Message.Chat.ID)
-	}
-
-    if err := c.sessionStore.SetAwaitingCookie(context.Background(), cq.From.ID); err != nil {
-        return err
-    }
-
-    return c.SendMessageMode(cq.Message.Chat.ID, connectGetCourseMessage, ParseModeMarkdownV2)
+	return nil
 }
 
 func (c *Client) handleCookieInput(ctx context.Context, u *user.User, message *Message) error {
@@ -190,9 +194,9 @@ func (c *Client) handleChatShared(message *Message) error {
 
     shared := message.ChatShared
 
-    if shared.RequestID != chatRequestID {
-        return nil
-    }
+    if shared.RequestID != chatRequestGroup && shared.RequestID != chatRequestChannel {
+    	return nil
+	}
 
     if err := c.userService.SelectTargetChat(
         context.Background(),
@@ -203,7 +207,7 @@ func (c *Client) handleChatShared(message *Message) error {
         return fmt.Errorf("select target chat: %w", err)
     }
 
-    if err := c.SendMessageAndRemoveKeyboard(message.Chat.ID, "✅ Чат выбран."); err != nil {
+    if err := c.SendMessageAndRemoveKeyboard(message.Chat.ID, "✅ Чат выбран\\."); err != nil {
         return err
     }
 

@@ -282,7 +282,6 @@ func (c *Client) SendMessageWithKeyboardMode(chatID int64, text, parseMode strin
 }
 
 const (
-    chatRequestID = 1
 	chatRequestGroup = 1
 	chatRequestChannel = 2
 )
@@ -319,6 +318,7 @@ func (c *Client) SendChatPicker(chatID int64) error {
 		    			BotIsMember:   true,
 		    			UserAdministratorRights: &ChatAdministratorRights{
 		    				CanManageChat: true,
+                            CanPostMessages: true,
 		    			},
 		    			BotAdministratorRights: &ChatAdministratorRights{
 		    				CanPostMessages: true,
