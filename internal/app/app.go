@@ -125,7 +125,7 @@ func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, sta
 				)
 
 				tgMu.Lock()
-				err = telegramClient.SendPhoto(chatID, jpgPath, caption)
+				err = telegramClient.SendPhoto(targetChatID, jpgPath, caption)
 				tgMu.Unlock()
 
 				if err != nil {

@@ -22,11 +22,11 @@ func (r *Repository) GetByTelegramID(ctx context.Context, telegramID int64) (*Us
 
 	err := r.db.QueryRow(
 		ctx,
-		`SELECT id, telegram_id, getcourse_cookie, created_at, getcourse_stream_id
+		`SELECT id, telegram_id, getcourse_cookie, created_at, getcourse_stream_id, target_chat_id, target_chat_title
 		FROM users
 		WHERE telegram_id = $1`,
 		telegramID,
-	).Scan(&user.ID, &user.TelegramID, &user.GetCourseCookie, &user.CreatedAt, &user.GetCourseStreamID)
+	).Scan(&user.ID, &user.TelegramID, &user.GetCourseCookie, &user.CreatedAt, &user.GetCourseStreamID, &user.TargetChatID, &user.TargetChatTitle)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -44,11 +44,11 @@ func (r *Repository) Create(ctx context.Context, telegramID int64) (*User, error
 
 	err := r.db.QueryRow(
 		ctx,
-		`INSERT INTO users (telegram_id)
-		VALUES ($1)
-		RETURNING id, telegram_id, getcourse_cookie, created_at, getcourse_stream_id`,
+		`INSERT INTO users (telegram_id, target_chat_id)
+		VALUES ($1, $1)
+		RETURNING id, telegram_id, getcourse_cookie, created_at, getcourse_stream_id, target_chat_id, target_chat_title`,
 		telegramID,
-	).Scan(&user.ID, &user.TelegramID, &user.GetCourseCookie, &user.CreatedAt, &user.GetCourseStreamID)
+	).Scan(&user.ID, &user.TelegramID, &user.GetCourseCookie, &user.CreatedAt, &user.GetCourseStreamID, &user.TargetChatID, &user.TargetChatTitle)
 
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func (r *Repository) UpdateCookie(ctx context.Context, telegramID int64, cookie 
 
 func (r *Repository) GetActive(ctx context.Context) ([]User, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, telegram_id, getcourse_cookie, created_at, getcourse_stream_id
+		SELECT id, telegram_id, getcourse_cookie, created_at, getcourse_stream_id, target_chat_id, target_chat_title
 		FROM users
 		WHERE getcourse_cookie IS NOT NULL`)
 
@@ -84,7 +84,7 @@ func (r *Repository) GetActive(ctx context.Context) ([]User, error) {
 	for rows.Next() {
 		var u User
 
-		if err := rows.Scan(&u.ID, &u.TelegramID, &u.GetCourseCookie, &u.CreatedAt, &u.GetCourseStreamID); err != nil {
+		if err := rows.Scan(&u.ID, &u.TelegramID, &u.GetCourseCookie, &u.CreatedAt, &u.GetCourseStreamID, &u.TargetChatID, &u.TargetChatTitle); err != nil {
 			return nil, err
 		}
 
