@@ -293,7 +293,7 @@ func (c *Client) SendChatPicker(chatID int64) error {
 	    Keyboard: [][]KeyboardButton{
 	    	{
 	    		{
-	    			Text: "👤 Личные сообщения",
+	    			Text: "💬 Личные сообщения",
 	    		},
 	    	},
 	    	{
@@ -303,6 +303,7 @@ func (c *Client) SendChatPicker(chatID int64) error {
 	    				RequestID:     chatRequestGroup,
 	    				ChatIsChannel: false,
 	    				BotIsMember:   true,
+                        RequestTitle:  true,
 	    				UserAdministratorRights: &ChatAdministratorRights{
 	    					CanManageChat: true,
 		    			},
@@ -331,7 +332,7 @@ func (c *Client) SendChatPicker(chatID int64) error {
 
     return c.SendMessageWithKeyboardMode(
 	    chatID,
-	    "Выберите чат, куда Schedulix будет отправлять новые материалы.",
+	    "🔗 Выберите чат, куда Schedulix будет отправлять новые материалы.",
 	    "",
 	    kb,
     )

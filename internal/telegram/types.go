@@ -48,11 +48,13 @@ type KeyboardButton struct {
 }
 
 type KeyboardButtonRequestChat struct {
-    RequestID               int                  	 `json:"request_id"`
-    ChatIsChannel           bool                 	 `json:"chat_is_channel"`
+    RequestID               int                      `json:"request_id"`
+    ChatIsChannel           bool                     `json:"chat_is_channel"`
     UserAdministratorRights *ChatAdministratorRights `json:"user_administrator_rights,omitempty"`
     BotAdministratorRights  *ChatAdministratorRights `json:"bot_administrator_rights,omitempty"`
-    BotIsMember             bool                 	 `json:"bot_is_member,omitempty"`
+    BotIsMember             bool                     `json:"bot_is_member,omitempty"`
+    RequestTitle            bool                     `json:"request_title,omitempty"`
+    RequestUsername         bool                     `json:"request_username,omitempty"`
 }
 
 type ChatAdministratorRights struct {

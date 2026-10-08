@@ -14,6 +14,45 @@ const callbackConnectGetCourse = "connect_getcourse"
 const callbackPickStream = "pick_stream"
 const callbackPickChat = "pick_chat"
 
+func (c *Client) connectedMenu(ctx context.Context, telegramID int64) (string, *InlineKeyboardMarkup, error) {
+	u, err := c.userService.GetOrCreate(ctx, telegramID)
+	if err != nil {
+		return "", nil, fmt.Errorf("get user: %w", err)
+	}
+
+	text := "_✅ GetCourse подключён_"
+
+	if s := c.currentStream(u); s != nil {
+		text += "\n\n• Выбранный тренинг:\n📚 *" + escapeMarkdownV2(s.Name) + "*"
+
+		if info := s.Info(); info != "" {
+			text += "\n" + escapeMarkdownV2(info)
+		}
+	}
+
+	chatName := "*💬 Личные сообщения*"
+	if u.TargetChatID != u.TelegramID {
+		if u.TargetChatTitle != nil && *u.TargetChatTitle != "" {
+			chatName = "💬 *" + escapeMarkdownV2(*u.TargetChatTitle) + "*"
+		} else {
+			chatName = fmt.Sprintf("💬 Чат %d", u.TargetChatID)
+		}
+	}
+
+	text += "\n\n• Выбранный чат:\n" + chatName
+	text += "\n\n🔔 Новые материалы будут приходить автоматически\\."
+
+	kb := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{{Text: "🔀 Сменить тренинг", CallbackData: callbackPickStream}},
+			{{Text: "💬 Сменить чат", CallbackData: callbackPickChat}},
+			{{Text: "🔄 Переподключить GetCourse", CallbackData: callbackConnectGetCourse}},
+		},
+	}
+
+	return text, kb, nil
+}
+
 func (c *Client) handleMessage(message *Message) error {
 	ctx := context.Background()
 
@@ -61,35 +100,26 @@ func (c *Client) handleMessage(message *Message) error {
 				"➡ _GetCourse подключён, но тренинг ещё не выбран_.\n\nБез тренинга материалы приходить не будут.", kb)
 
 		default:
-			text := "_✅ GetCourse подключён_\n\nНовые материалы будут приходить автоматически\\."
-
-			if s := c.currentStream(u); s != nil {
-				text = "_✅ GetCourse подключён_\n\n• Выбранный тренинг:\n>📚 *" +
-					escapeMarkdownV2(s.Name) + "*" + "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
-
-				if info := s.Info(); info != "" {
-					text += "\n>" + escapeMarkdownV2(info)
-				}
-
-				text += "\n\nНовые материалы будут приходить автоматически\\."
+			text, kb, err := c.connectedMenu(ctx, message.From.ID)
+			if err != nil {
+				return fmt.Errorf("connected menu: %w", err)
 			}
 
-			kb := &InlineKeyboardMarkup{
-				InlineKeyboard: [][]InlineKeyboardButton{
-					{{Text: "🔀 Сменить тренинг", CallbackData: callbackPickStream}},
-					{{Text: "📨 Сменить чат", CallbackData: callbackPickChat}},
-					{{Text: "🔄 Переподключить GetCourse", CallbackData: callbackConnectGetCourse}},
-				},
-			}
 			return c.SendMessageWithKeyboardMode(message.Chat.ID, text, ParseModeMarkdownV2, kb)
 		}
 	}
 
-	if message.Text == "👤 Личные сообщения" {
+	if message.Text == "💬 Личные сообщения" {
 		if err := c.userService.ResetTargetChat(ctx, message.From.ID); err != nil {
 			return fmt.Errorf("reset target chat: %w", err)
 		}
-		return c.SendMessageAndRemoveKeyboard(message.Chat.ID, "✅ Материалы будут приходить в личные сообщения\\.")
+
+		text, kb, err := c.connectedMenu(ctx, message.From.ID)
+		if err != nil {
+			return fmt.Errorf("connected menu: %w", err)
+		}
+
+		return c.SendMessageWithKeyboardMode(message.Chat.ID, text, ParseModeMarkdownV2, kb)
 	}
 
 	awaiting, err := c.sessionStore.IsAwaitingCookie(ctx, message.From.ID)
@@ -155,7 +185,12 @@ func (c *Client) handleCookieInput(ctx context.Context, u *user.User, message *M
 	if u.GetCourseStreamID != nil {
 		for _, s := range streams {
 			if s.ID == *u.GetCourseStreamID {
-				return c.SendMessage(message.Chat.ID, "_✅ GetCourse переподключён. Выбранный тренинг сохранён._")
+				text, kb, err := c.connectedMenu(ctx, message.From.ID)
+				if err != nil {
+					return fmt.Errorf("connected menu: %w", err)
+				}
+
+				return c.SendMessageWithKeyboardMode(message.Chat.ID, text, ParseModeMarkdownV2, kb)
 			}
 		}
 	}
@@ -188,6 +223,8 @@ func (c *Client) handlePickStream(cq *CallbackQuery) error {
 }
 
 func (c *Client) handleChatShared(message *Message) error {
+	ctx := context.Background()
+
     if message.ChatShared == nil {
         return nil
     }
@@ -207,22 +244,17 @@ func (c *Client) handleChatShared(message *Message) error {
         return fmt.Errorf("select target chat: %w", err)
     }
 
-    if err := c.SendMessageAndRemoveKeyboard(message.Chat.ID, "✅ Чат выбран\\."); err != nil {
-        return err
-    }
-
     title := shared.Title
     if title == "" {
         title = fmt.Sprintf("%d", shared.ChatID)
     }
 
-    return c.SendMessage(
-        message.Chat.ID,
-        fmt.Sprintf(
-            "✅ Чат выбран.\n\nТеперь новые материалы будут отправляться в «%s».",
-            title,
-        ),
-    )
+	text, kb, err := c.connectedMenu(ctx, message.From.ID)
+	if err != nil {
+		return fmt.Errorf("connected menu: %w", err)
+	}
+
+	return c.SendMessageWithKeyboardMode(message.Chat.ID, text, ParseModeMarkdownV2, kb)
 }
 
 func (c *Client) SendMessageAndRemoveKeyboard(chatID int64, text string) error {

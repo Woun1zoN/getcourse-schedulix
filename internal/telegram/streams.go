@@ -42,7 +42,7 @@ func (c *Client) handleStreamSelected(cq *CallbackQuery) error {
 		return fmt.Errorf("select stream: %w", err)
 	}
 
-	return c.SendMessage(cq.Message.Chat.ID, "✅ Тренинг выбран. Содержимое уроков с этого момента будет приходить автоматически.")
+	return c.SendMessage(cq.Message.Chat.ID, "_✅ Тренинг выбран._")
 }
 
 func (c *Client) currentStream(u *user.User) *getcourse.Stream {
