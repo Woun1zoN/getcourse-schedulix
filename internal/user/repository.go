@@ -44,8 +44,8 @@ func (r *Repository) Create(ctx context.Context, telegramID int64) (*User, error
 
 	err := r.db.QueryRow(
 		ctx,
-		`INSERT INTO users (telegram_id, target_chat_id)
-		VALUES ($1, $1)
+		`INSERT INTO users (telegram_id)
+		VALUES ($1)
 		RETURNING id, telegram_id, getcourse_cookie, created_at, getcourse_stream_id, target_chat_id, target_chat_title`,
 		telegramID,
 	).Scan(&user.ID, &user.TelegramID, &user.GetCourseCookie, &user.CreatedAt, &user.GetCourseStreamID, &user.TargetChatID, &user.TargetChatTitle)

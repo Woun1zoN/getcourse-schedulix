@@ -33,16 +33,36 @@ func (c *Client) SendStreamPicker(chatID int64, streams []getcourse.Stream) erro
 }
 
 func (c *Client) handleStreamSelected(cq *CallbackQuery) error {
+	ctx := context.Background()
+
 	streamID, err := strconv.ParseInt(strings.TrimPrefix(cq.Data, callbackStreamPrefix), 10, 64)
 	if err != nil {
 		return nil
 	}
 
-	if err := c.userService.SelectStream(context.Background(), cq.From.ID, streamID); err != nil {
+	if err := c.userService.SelectStream(ctx, cq.From.ID, streamID); err != nil {
 		return fmt.Errorf("select stream: %w", err)
 	}
 
-	return c.SendMessage(cq.Message.Chat.ID, "_✅ Тренинг выбран._")
+	if err := c.SendMessage(cq.Message.Chat.ID, "_✅ Тренинг выбран._"); err != nil {
+		return err
+	}
+
+	u, err := c.userService.GetOrCreate(ctx, cq.From.ID)
+	if err != nil {
+		return fmt.Errorf("get user: %w", err)
+	}
+
+	if u.TargetChatID == nil {
+		return c.SendChatPicker(cq.Message.Chat.ID)
+	}
+
+	text, kb, err := c.connectedMenu(ctx, cq.From.ID)
+	if err != nil {
+		return fmt.Errorf("connected menu: %w", err)
+	}
+
+	return c.SendMessageWithKeyboardMode(cq.Message.Chat.ID, text, ParseModeMarkdownV2, kb)
 }
 
 func (c *Client) currentStream(u *user.User) *getcourse.Stream {

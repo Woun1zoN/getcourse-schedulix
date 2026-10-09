@@ -31,11 +31,11 @@ func (c *Client) connectedMenu(ctx context.Context, telegramID int64) (string, *
 	}
 
 	chatName := "*💬 Личные сообщения*"
-	if u.TargetChatID != u.TelegramID {
+	if u.TargetChatID != nil && *u.TargetChatID != u.TelegramID {
 		if u.TargetChatTitle != nil && *u.TargetChatTitle != "" {
 			chatName = "💬 *" + escapeMarkdownV2(*u.TargetChatTitle) + "*"
 		} else {
-			chatName = fmt.Sprintf("💬 Чат %d", u.TargetChatID)
+			chatName = fmt.Sprintf("💬 Чат %d", *u.TargetChatID)
 		}
 	}
 
@@ -98,6 +98,9 @@ func (c *Client) handleMessage(message *Message) error {
 
 			return c.SendMessageWithKeyboard(message.Chat.ID,
 				"➡ _GetCourse подключён, но тренинг ещё не выбран_.\n\nБез тренинга материалы приходить не будут.", kb)
+		
+		case u.TargetChatID == nil:
+			return c.SendChatPicker(message.Chat.ID)
 
 		default:
 			text, kb, err := c.connectedMenu(ctx, message.From.ID)

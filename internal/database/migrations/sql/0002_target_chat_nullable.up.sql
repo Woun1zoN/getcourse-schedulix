@@ -1,0 +1,1 @@
+ALTER TABLE users ALTER COLUMN target_chat_id DROP NOT NULL;
