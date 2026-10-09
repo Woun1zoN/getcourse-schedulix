@@ -119,7 +119,7 @@ func (r *Repository) UpdateTargetChat(ctx context.Context, telegramID int64, cha
 func (r *Repository) ResetTargetChat(ctx context.Context, telegramID int64) error {
     _, err := r.db.Exec(
         ctx,
-        `UPDATE users SET target_chat_id = telegram_id, target_chat_title = NULL WHERE telegram_id = $1`,
+        `UPDATE users SET target_chat_id = NULL, target_chat_title = NULL WHERE telegram_id = $1`,
         telegramID,
     )
 
