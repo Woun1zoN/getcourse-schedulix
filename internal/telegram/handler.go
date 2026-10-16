@@ -31,7 +31,10 @@ func (c *Client) connectedMenu(ctx context.Context, telegramID int64) (string, *
 	}
 
 	chatName := "*💬 Личные сообщения*"
-	if u.TargetChatID != nil && *u.TargetChatID != u.TelegramID {
+	switch {
+	case u.TargetChatID == nil:
+		chatName = "➖ Не выбран"
+	case *u.TargetChatID != u.TelegramID:
 		if u.TargetChatTitle != nil && *u.TargetChatTitle != "" {
 			chatName = "💬 *" + escapeMarkdownV2(*u.TargetChatTitle) + "*"
 		} else {
@@ -40,7 +43,11 @@ func (c *Client) connectedMenu(ctx context.Context, telegramID int64) (string, *
 	}
 
 	text += "\n\n• Выбранный чат:\n" + chatName
-	text += "\n\n🔔 Новые материалы будут приходить автоматически\\."
+	if u.TargetChatID == nil {
+		text += "\n\n❗ Пока чат не выбран, материалы приходить не будут\\."
+	} else {
+		text += "\n\n🔔 Новые материалы будут приходить автоматически\\."
+	}
 
 	kb := &InlineKeyboardMarkup{
 		InlineKeyboard: [][]InlineKeyboardButton{
@@ -100,7 +107,7 @@ func (c *Client) handleMessage(message *Message) error {
 				"➡ _GetCourse подключён, но тренинг ещё не выбран_.\n\nБез тренинга материалы приходить не будут.", kb)
 		
 		case u.TargetChatID == nil:
-			return c.SendChatPicker(message.Chat.ID)
+			return c.SendChatPicker(message.Chat.ID, ChatPickerInitial)
 
 		default:
 			text, kb, err := c.connectedMenu(ctx, message.From.ID)
@@ -123,6 +130,19 @@ func (c *Client) handleMessage(message *Message) error {
 		}
 
 		return c.SendMessageWithKeyboardMode(message.Chat.ID, text, ParseModeMarkdownV2, kb)
+	}
+
+	if message.Text == "➡ Пропустить" || message.Text == "➖ Без чата" {
+    	if err := c.userService.ClearTargetChat(ctx, message.From.ID); err != nil {
+        	return fmt.Errorf("clear target chat: %w", err)
+    	}
+
+    	text, kb, err := c.connectedMenu(ctx, message.From.ID)
+    	if err != nil {
+        	return fmt.Errorf("connected menu: %w", err)
+    	}
+
+    	return c.SendMessageWithKeyboardMode(message.Chat.ID, text, ParseModeMarkdownV2, kb)
 	}
 
 	awaiting, err := c.sessionStore.IsAwaitingCookie(ctx, message.From.ID)
@@ -148,7 +168,7 @@ func (c *Client) handleCallbackQuery(cq *CallbackQuery) error {
 		return c.handlePickStream(cq)
 
 	case cq.Data == callbackPickChat:
-		return c.SendChatPicker(cq.Message.Chat.ID)
+		return c.SendChatPicker(cq.Message.Chat.ID, ChatPickerChange)
 
 	case cq.Data == callbackConnectGetCourse:
 		if err := c.sessionStore.SetAwaitingCookie(context.Background(), cq.From.ID); err != nil {

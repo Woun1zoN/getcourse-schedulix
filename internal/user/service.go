@@ -92,3 +92,7 @@ func (s *Service) SelectTargetChat(ctx context.Context, telegramID int64, chatID
 func (s *Service) ResetTargetChat(ctx context.Context, telegramID int64) error {
     return s.repository.ResetTargetChat(ctx, telegramID)
 }
+
+func (s *Service) ClearTargetChat(ctx context.Context, telegramID int64) error {
+	return s.repository.ClearTargetChat(ctx, telegramID)
+}

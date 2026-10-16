@@ -48,21 +48,16 @@ func (c *Client) handleStreamSelected(cq *CallbackQuery) error {
 		return err
 	}
 
-	u, err := c.userService.GetOrCreate(ctx, cq.From.ID)
+	u, err := c.userService.GetOrCreate(context.Background(), cq.From.ID)
 	if err != nil {
-		return fmt.Errorf("get user: %w", err)
+		return err
 	}
 
 	if u.TargetChatID == nil {
-		return c.SendChatPicker(cq.Message.Chat.ID)
+		return c.SendChatPicker(cq.Message.Chat.ID, ChatPickerInitial)
 	}
 
-	text, kb, err := c.connectedMenu(ctx, cq.From.ID)
-	if err != nil {
-		return fmt.Errorf("connected menu: %w", err)
-	}
-
-	return c.SendMessageWithKeyboardMode(cq.Message.Chat.ID, text, ParseModeMarkdownV2, kb)
+	return nil
 }
 
 func (c *Client) currentStream(u *user.User) *getcourse.Stream {

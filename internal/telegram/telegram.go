@@ -14,6 +14,8 @@ import (
     "github.com/Woun1zoN/getcourse-schedulix/internal/storage"
 )
 
+type ChatPickerMode int
+
 type Client struct {
 	token        string
 	chatID       string
@@ -286,7 +288,18 @@ const (
 	chatRequestChannel = 2
 )
 
-func (c *Client) SendChatPicker(chatID int64) error {
+const (
+    ChatPickerInitial ChatPickerMode = iota
+    ChatPickerChange
+)
+
+func (c *Client) SendChatPicker(chatID int64, mode ChatPickerMode) error {
+    skipButtonText := "➡ Пропустить"
+
+    if mode == ChatPickerChange {
+        skipButtonText = "➖ Без чата"
+    }
+
     kb := &ReplyKeyboardMarkup{
 	    ResizeKeyboard:  true,
 	    OneTimeKeyboard: true,
@@ -327,6 +340,11 @@ func (c *Client) SendChatPicker(chatID int64) error {
 		    		},
 		    	},
 		    },
+            {
+                {
+                    Text: skipButtonText,
+                },
+            },
 	    },
     }
 
