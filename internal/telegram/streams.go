@@ -44,20 +44,18 @@ func (c *Client) handleStreamSelected(cq *CallbackQuery) error {
 		return fmt.Errorf("select stream: %w", err)
 	}
 
-	if err := c.SendMessage(cq.Message.Chat.ID, "_✅ Тренинг выбран._"); err != nil {
-		return err
-	}
-
-	u, err := c.userService.GetOrCreate(context.Background(), cq.From.ID)
+	u, err := c.userService.GetOrCreate(ctx, cq.From.ID)
 	if err != nil {
 		return err
 	}
 
 	if u.TargetChatID == nil {
-		return c.SendChatPicker(cq.Message.Chat.ID, ChatPickerInitial)
+		return c.SendChatPicker(cq.From.ID, ChatPickerInitial)
 	}
 
-	return nil
+	text, kb := c.renderConnectedMenu(u)
+
+	return c.SendMessageWithKeyboardMode(cq.From.ID, text, ParseModeMarkdownV2, kb)
 }
 
 func (c *Client) currentStream(u *user.User) *getcourse.Stream {

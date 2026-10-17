@@ -3,11 +3,11 @@ package telegram
 import (
 	"context"
 	"fmt"
-    "strings"
-    "log/slog"
+	"log/slog"
+	"strings"
 
-    "github.com/Woun1zoN/getcourse-schedulix/internal/getcourse"
-    "github.com/Woun1zoN/getcourse-schedulix/internal/user"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/getcourse"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
 )
 
 const callbackConnectGetCourse = "connect_getcourse"
@@ -20,6 +20,12 @@ func (c *Client) connectedMenu(ctx context.Context, telegramID int64) (string, *
 		return "", nil, fmt.Errorf("get user: %w", err)
 	}
 
+	text, kb := c.renderConnectedMenu(u)
+
+	return text, kb, nil
+}
+
+func (c *Client) renderConnectedMenu(u *user.User) (string, *InlineKeyboardMarkup) {
 	text := "_✅ GetCourse подключён_"
 
 	if s := c.currentStream(u); s != nil {
@@ -57,7 +63,7 @@ func (c *Client) connectedMenu(ctx context.Context, telegramID int64) (string, *
 		},
 	}
 
-	return text, kb, nil
+	return text, kb
 }
 
 func (c *Client) handleMessage(message *Message) error {
@@ -73,7 +79,7 @@ func (c *Client) handleMessage(message *Message) error {
 	}
 
 	if message.ChatShared != nil {
-    	return c.handleChatShared(message)
+		return c.handleChatShared(message)
 	}
 
 	if message.Text == "/start" {
@@ -105,7 +111,7 @@ func (c *Client) handleMessage(message *Message) error {
 
 			return c.SendMessageWithKeyboard(message.Chat.ID,
 				"➡ _GetCourse подключён, но тренинг ещё не выбран_.\n\nБез тренинга материалы приходить не будут.", kb)
-		
+
 		case u.TargetChatID == nil:
 			return c.SendChatPicker(message.Chat.ID, ChatPickerInitial)
 
@@ -133,16 +139,16 @@ func (c *Client) handleMessage(message *Message) error {
 	}
 
 	if message.Text == "➡ Пропустить" || message.Text == "➖ Без чата" {
-    	if err := c.userService.ClearTargetChat(ctx, message.From.ID); err != nil {
-        	return fmt.Errorf("clear target chat: %w", err)
-    	}
+		if err := c.userService.ClearTargetChat(ctx, message.From.ID); err != nil {
+			return fmt.Errorf("clear target chat: %w", err)
+		}
 
-    	text, kb, err := c.connectedMenu(ctx, message.From.ID)
-    	if err != nil {
-        	return fmt.Errorf("connected menu: %w", err)
-    	}
+		text, kb, err := c.connectedMenu(ctx, message.From.ID)
+		if err != nil {
+			return fmt.Errorf("connected menu: %w", err)
+		}
 
-    	return c.SendMessageWithKeyboardMode(message.Chat.ID, text, ParseModeMarkdownV2, kb)
+		return c.SendMessageWithKeyboardMode(message.Chat.ID, text, ParseModeMarkdownV2, kb)
 	}
 
 	awaiting, err := c.sessionStore.IsAwaitingCookie(ctx, message.From.ID)
@@ -232,45 +238,45 @@ func (c *Client) handlePickStream(cq *CallbackQuery) error {
 	}
 
 	if u.GetCourseCookie == nil {
-		return c.SendMessage(cq.Message.Chat.ID, "Сначала подключите GetCourse.")
+		return c.SendMessage(cq.From.ID, "Сначала подключите GetCourse.")
 	}
 
 	client := getcourse.NewClient(c.getCourseBaseURL, *u.GetCourseCookie)
 
 	streams, err := client.GetStreams()
 	if err != nil {
-		return c.SendMessage(cq.Message.Chat.ID, "Не удалось получить список тренингов, попробуйте позже.")
+		return c.SendMessage(cq.From.ID, "Не удалось получить список тренингов, попробуйте позже.")
 	}
 
-	return c.SendStreamPicker(cq.Message.Chat.ID, streams)
+	return c.SendStreamPicker(cq.From.ID, streams)
 }
 
 func (c *Client) handleChatShared(message *Message) error {
 	ctx := context.Background()
 
-    if message.ChatShared == nil {
-        return nil
-    }
-
-    shared := message.ChatShared
-
-    if shared.RequestID != chatRequestGroup && shared.RequestID != chatRequestChannel {
-    	return nil
+	if message.ChatShared == nil {
+		return nil
 	}
 
-    if err := c.userService.SelectTargetChat(
-        context.Background(),
-        message.From.ID,
-        shared.ChatID,
-        shared.Title,
-    ); err != nil {
-        return fmt.Errorf("select target chat: %w", err)
-    }
+	shared := message.ChatShared
 
-    title := shared.Title
-    if title == "" {
-        title = fmt.Sprintf("%d", shared.ChatID)
-    }
+	if shared.RequestID != chatRequestGroup && shared.RequestID != chatRequestChannel {
+		return nil
+	}
+
+	if err := c.userService.SelectTargetChat(
+		context.Background(),
+		message.From.ID,
+		shared.ChatID,
+		shared.Title,
+	); err != nil {
+		return fmt.Errorf("select target chat: %w", err)
+	}
+
+	title := shared.Title
+	if title == "" {
+		title = fmt.Sprintf("%d", shared.ChatID)
+	}
 
 	text, kb, err := c.connectedMenu(ctx, message.From.ID)
 	if err != nil {
@@ -282,7 +288,7 @@ func (c *Client) handleChatShared(message *Message) error {
 
 func (c *Client) SendMessageAndRemoveKeyboard(chatID int64, text string) error {
 	return c.SendMessageWithKeyboardMode(chatID, text, ParseModeMarkdownV2, &ReplyKeyboardRemove{
-			RemoveKeyboard: true,
-		},
+		RemoveKeyboard: true,
+	},
 	)
 }
