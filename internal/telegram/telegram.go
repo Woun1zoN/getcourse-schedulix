@@ -349,10 +349,10 @@ func (c *Client) SendChatPicker(chatID int64, mode ChatPickerMode) error {
     }
 
     return c.SendMessageWithKeyboardMode(
-	    chatID,
-	    "🔗 Выберите чат, куда Schedulix будет отправлять новые материалы.",
-	    "",
-	    kb,
+        chatID,
+        "🔗 Выберите чат, куда Schedulix будет отправлять новые материалы.",
+        "",
+        kb,
     )
 }
 

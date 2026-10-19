@@ -35,6 +35,10 @@ func (c *Client) SendStreamPicker(chatID int64, streams []getcourse.Stream) erro
 		}
 	}
 
+	rows = append(rows, []InlineKeyboardButton{
+		{Text: "Отмена", CallbackData: callbackCancel, Style: "danger"},
+	})
+
 	return c.SendMessageWithKeyboard(
 		chatID,
 		"🔗 Выберите тренинг, за которым следить:",

@@ -13,6 +13,7 @@ import (
 const callbackConnectGetCourse = "connect_getcourse"
 const callbackPickStream = "pick_stream"
 const callbackPickChat = "pick_chat"
+const callbackCancel = "cancel"
 
 func (c *Client) connectedMenu(ctx context.Context, telegramID int64) (string, *InlineKeyboardMarkup, error) {
 	u, err := c.userService.GetOrCreate(ctx, telegramID)
@@ -180,7 +181,10 @@ func (c *Client) handleCallbackQuery(cq *CallbackQuery) error {
 		if err := c.sessionStore.SetAwaitingCookie(context.Background(), cq.From.ID); err != nil {
 			return err
 		}
-		return c.SendMessageMode(cq.Message.Chat.ID, connectGetCourseMessage, ParseModeMarkdownV2)
+		return c.SendMessageWithKeyboardMode(cq.Message.Chat.ID, connectGetCourseMessage, ParseModeMarkdownV2, cancelKeyboard())
+
+	case cq.Data == callbackCancel:
+		return c.handleCancel(cq)
 	}
 
 	return nil
@@ -286,9 +290,36 @@ func (c *Client) handleChatShared(message *Message) error {
 	return c.SendMessageWithKeyboardMode(message.Chat.ID, text, ParseModeMarkdownV2, kb)
 }
 
+func (c *Client) handleCancel(cq *CallbackQuery) error {
+	ctx := context.Background()
+
+	if err := c.sessionStore.ClearState(ctx, cq.From.ID); err != nil {
+		return fmt.Errorf("clear session state: %w", err)
+	}
+
+	u, err := c.userService.GetOrCreate(ctx, cq.From.ID)
+	if err != nil {
+		return err
+	}
+
+	if u.GetCourseCookie != nil && u.GetCourseStreamID != nil && u.TargetChatID != nil {
+		text, kb := c.renderConnectedMenu(u)
+		return c.SendMessageWithKeyboardMode(cq.Message.Chat.ID, text, ParseModeMarkdownV2, kb)
+	}
+
+	return c.SendMessage(cq.Message.Chat.ID, "Отменено. Отправьте /start, чтобы вернуться в меню.")
+}
+
+func cancelKeyboard() *InlineKeyboardMarkup {
+	return &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{{Text: "Отмена", CallbackData: callbackCancel, Style: "danger"}},
+		},
+	}
+}
+
 func (c *Client) SendMessageAndRemoveKeyboard(chatID int64, text string) error {
 	return c.SendMessageWithKeyboardMode(chatID, text, ParseModeMarkdownV2, &ReplyKeyboardRemove{
 		RemoveKeyboard: true,
-	},
-	)
+	})
 }

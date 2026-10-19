@@ -80,6 +80,7 @@ type SendMessagePayload struct {
 type InlineKeyboardButton struct {
 	Text         string `json:"text"`
 	CallbackData string `json:"callback_data"`
+	Style        string `json:"style,omitempty"`
 }
 
 type InlineKeyboardMarkup struct {
