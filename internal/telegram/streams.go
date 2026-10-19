@@ -17,12 +17,22 @@ func (c *Client) SendStreamPicker(chatID int64, streams []getcourse.Stream) erro
 		return c.SendMessage(chatID, "На вашем аккаунте нет ниодного тренинга.")
 	}
 
+	const perRow = 2
+
 	rows := make([][]InlineKeyboardButton, 0, len(streams))
-	for _, s := range streams {
-		rows = append(rows, []InlineKeyboardButton{{
+
+	for i, s := range streams {
+		btn := InlineKeyboardButton{
 			Text:         s.Name,
 			CallbackData: callbackStreamPrefix + strconv.FormatInt(s.ID, 10),
-		}})
+		}
+
+		if i%perRow == 0 {
+			rows = append(rows, []InlineKeyboardButton{btn})
+		} else {
+			last := len(rows) - 1
+			rows[last] = append(rows[last], btn)
+		}
 	}
 
 	return c.SendMessageWithKeyboard(
