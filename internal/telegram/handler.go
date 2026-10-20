@@ -31,10 +31,11 @@ func (c *Client) renderConnectedMenu(u *user.User) (string, *InlineKeyboardMarku
 
 	if s := c.currentStream(u); s != nil {
 		text += "\n\n• Выбранный тренинг:\n📚 *" + escapeMarkdownV2(s.Name) + "*"
-
 		if info := s.Info(); info != "" {
 			text += "\n" + escapeMarkdownV2(info)
 		}
+	} else if u.GetCourseStreamID == nil {
+		text += "\n\n• Выбранный тренинг:\n➖ Не выбран"
 	}
 
 	chatName := "*💬 Личные сообщения*"
@@ -50,9 +51,14 @@ func (c *Client) renderConnectedMenu(u *user.User) (string, *InlineKeyboardMarku
 	}
 
 	text += "\n\n• Выбранный чат:\n" + chatName
-	if u.TargetChatID == nil {
+	switch {
+	case u.GetCourseStreamID == nil && u.TargetChatID == nil:
+		text += "\n\n❗ Пока тренинг и чат не выбраны, материалы приходить не будут\\."
+	case u.GetCourseStreamID == nil:
+		text += "\n\n❗ Пока тренинг не выбран, материалы приходить не будут\\."
+	case u.TargetChatID == nil:
 		text += "\n\n❗ Пока чат не выбран, материалы приходить не будут\\."
-	} else {
+	default:
 		text += "\n\n🔔 Новые материалы будут приходить автоматически\\."
 	}
 
@@ -185,6 +191,9 @@ func (c *Client) handleCallbackQuery(cq *CallbackQuery) error {
 
 	case cq.Data == callbackCancel:
 		return c.handleCancel(cq)
+
+	case cq.Data == callbackSkipStream:
+		return c.handleSkipStream(cq)
 	}
 
 	return nil
@@ -316,6 +325,26 @@ func (c *Client) handleCancel(cq *CallbackQuery) error {
 	}
 
 	return c.SendMessageWithKeyboardMode(chatID, welcomeText, ParseModeMarkdownV2, kb)
+}
+
+func (c *Client) handleSkipStream(cq *CallbackQuery) error {
+	ctx := context.Background()
+
+	if err := c.userService.ClearStream(ctx, cq.From.ID); err != nil {
+		return fmt.Errorf("clear stream: %w", err)
+	}
+
+	u, err := c.userService.GetOrCreate(ctx, cq.From.ID)
+	if err != nil {
+		return err
+	}
+
+	if u.TargetChatID == nil {
+		return c.SendChatPicker(cq.From.ID, ChatPickerInitial)
+	}
+
+	text, kb := c.renderConnectedMenu(u)
+	return c.SendMessageWithKeyboardMode(cq.From.ID, text, ParseModeMarkdownV2, kb)
 }
 
 func cancelKeyboard() *InlineKeyboardMarkup {

@@ -131,3 +131,11 @@ func (r *Repository) ClearTargetChat(ctx context.Context, telegramID int64) erro
 
 	return err
 }
+
+func (r *Repository) ClearStream(ctx context.Context, telegramID int64) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE users SET getcourse_stream_id = NULL WHERE telegram_id = $1`,
+		telegramID)
+
+	return err
+}

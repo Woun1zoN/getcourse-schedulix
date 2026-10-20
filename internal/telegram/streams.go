@@ -11,6 +11,7 @@ import (
 )
 
 const callbackStreamPrefix = "stream:"
+const callbackSkipStream   = "skip_stream"
 
 func (c *Client) SendStreamPicker(chatID int64, streams []getcourse.Stream) error {
 	if len(streams) == 0 {
@@ -34,6 +35,10 @@ func (c *Client) SendStreamPicker(chatID int64, streams []getcourse.Stream) erro
 			rows[last] = append(rows[last], btn)
 		}
 	}
+
+	rows = append(rows, []InlineKeyboardButton{
+		{Text: "Пропустить", CallbackData: callbackSkipStream, Style: "primary"},
+	})
 
 	rows = append(rows, []InlineKeyboardButton{
 		{Text: "Отмена", CallbackData: callbackCancel, Style: "danger"},

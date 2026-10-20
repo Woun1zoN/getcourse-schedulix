@@ -96,3 +96,7 @@ func (s *Service) ResetTargetChat(ctx context.Context, telegramID int64) error {
 func (s *Service) ClearTargetChat(ctx context.Context, telegramID int64) error {
 	return s.repository.ClearTargetChat(ctx, telegramID)
 }
+
+func (s *Service) ClearStream(ctx context.Context, telegramID int64) error {
+	return s.repository.ClearStream(ctx, telegramID)
+}
