@@ -302,12 +302,20 @@ func (c *Client) handleCancel(cq *CallbackQuery) error {
 		return err
 	}
 
-	if u.GetCourseCookie != nil && u.GetCourseStreamID != nil && u.TargetChatID != nil {
+	chatID := cq.Message.Chat.ID
+
+	if u.GetCourseCookie != nil {
 		text, kb := c.renderConnectedMenu(u)
-		return c.SendMessageWithKeyboardMode(cq.Message.Chat.ID, text, ParseModeMarkdownV2, kb)
+		return c.SendMessageWithKeyboardMode(chatID, text, ParseModeMarkdownV2, kb)
 	}
 
-	return c.SendMessage(cq.Message.Chat.ID, "Отменено. Отправьте /start, чтобы вернуться в меню.")
+	kb := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{{Text: "🔗 Подключить GetCourse", CallbackData: callbackConnectGetCourse}},
+		},
+	}
+
+	return c.SendMessageWithKeyboardMode(chatID, welcomeText, ParseModeMarkdownV2, kb)
 }
 
 func cancelKeyboard() *InlineKeyboardMarkup {
