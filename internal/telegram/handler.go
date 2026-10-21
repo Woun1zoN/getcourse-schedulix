@@ -14,6 +14,7 @@ const callbackConnectGetCourse = "connect_getcourse"
 const callbackPickStream = "pick_stream"
 const callbackPickChat = "pick_chat"
 const callbackCancel = "cancel"
+const callbackBackToMenu = "back_to_menu"
 
 func (c *Client) connectedMenu(ctx context.Context, telegramID int64) (string, *InlineKeyboardMarkup, error) {
 	u, err := c.userService.GetOrCreate(ctx, telegramID)
@@ -63,11 +64,15 @@ func (c *Client) renderConnectedMenu(u *user.User) (string, *InlineKeyboardMarku
 	}
 
 	kb := &InlineKeyboardMarkup{
-		InlineKeyboard: [][]InlineKeyboardButton{
-			{{Text: "🔀 Сменить тренинг", CallbackData: callbackPickStream}},
-			{{Text: "💬 Сменить чат", CallbackData: callbackPickChat}},
-			{{Text: "🔄 Переподключить GetCourse", CallbackData: callbackConnectGetCourse}},
-		},
+    	InlineKeyboard: [][]InlineKeyboardButton{
+        	{
+        	    {Text: "🔀 Сменить тренинг", CallbackData: callbackPickStream},
+        	    {Text: "💬 Сменить чат", CallbackData: callbackPickChat},
+        	},
+        	{
+        	    {Text: "🔄 Переподключить GetCourse", CallbackData: callbackConnectGetCourse},
+        	},
+    	},
 	}
 
 	return text, kb
@@ -90,46 +95,23 @@ func (c *Client) handleMessage(message *Message) error {
 	}
 
 	if message.Text == "/start" {
-		if err := c.sessionStore.ClearState(ctx, message.From.ID); err != nil {
-			return fmt.Errorf("clear session state: %w", err)
-		}
-
 		c.logger.Info(
 			"telegram command",
 			slog.String("command", "/start"),
 			slog.Int64("telegram_id", message.From.ID),
 		)
 
-		switch {
-		case u.GetCourseCookie == nil:
-			kb := &InlineKeyboardMarkup{
-				InlineKeyboard: [][]InlineKeyboardButton{
-					{{Text: "🔗 Подключить GetCourse", CallbackData: callbackConnectGetCourse}},
-				},
-			}
-			return c.SendMessageWithKeyboardMode(message.Chat.ID, welcomeText, ParseModeMarkdownV2, kb)
+		return c.sendStartScreen(ctx, message.Chat.ID, u)
+	}
 
-		case u.GetCourseStreamID == nil:
-			kb := &InlineKeyboardMarkup{
-				InlineKeyboard: [][]InlineKeyboardButton{
-					{{Text: "🔗 Выбрать тренинг", CallbackData: callbackPickStream}},
-				},
-			}
+	if message.Text == "/help" {
+		c.logger.Info(
+			"telegram command",
+			slog.String("command", "/help"),
+			slog.Int64("telegram_id", message.From.ID),
+		)
 
-			return c.SendMessageWithKeyboard(message.Chat.ID,
-				"➡ _GetCourse подключён, но тренинг ещё не выбран_.\n\nБез тренинга материалы приходить не будут.", kb)
-
-		case u.TargetChatID == nil:
-			return c.SendChatPicker(message.Chat.ID, ChatPickerInitial)
-
-		default:
-			text, kb, err := c.connectedMenu(ctx, message.From.ID)
-			if err != nil {
-				return fmt.Errorf("connected menu: %w", err)
-			}
-
-			return c.SendMessageWithKeyboardMode(message.Chat.ID, text, ParseModeMarkdownV2, kb)
-		}
+		return c.sendHelp(message.Chat.ID)
 	}
 
 	if message.Text == "💬 Личные сообщения" {
@@ -194,6 +176,16 @@ func (c *Client) handleCallbackQuery(cq *CallbackQuery) error {
 
 	case cq.Data == callbackSkipStream:
 		return c.handleSkipStream(cq)
+
+	case cq.Data == callbackBackToMenu:
+		ctx := context.Background()
+
+		u, err := c.userService.GetOrCreate(ctx, cq.From.ID)
+		if err != nil {
+			return err
+		}
+
+		return c.sendStartScreen(ctx, cq.Message.Chat.ID, u)
 	}
 
 	return nil
@@ -359,4 +351,48 @@ func (c *Client) SendMessageAndRemoveKeyboard(chatID int64, text string) error {
 	return c.SendMessageWithKeyboardMode(chatID, text, ParseModeMarkdownV2, &ReplyKeyboardRemove{
 		RemoveKeyboard: true,
 	})
+}
+
+func (c *Client) sendStartScreen(ctx context.Context, chatID int64, u *user.User) error {
+	if err := c.sessionStore.ClearState(ctx, u.TelegramID); err != nil {
+		return fmt.Errorf("clear session state: %w", err)
+	}
+
+	switch {
+	case u.GetCourseCookie == nil:
+		kb := &InlineKeyboardMarkup{
+			InlineKeyboard: [][]InlineKeyboardButton{
+				{{Text: "🔗 Подключить GetCourse", CallbackData: callbackConnectGetCourse}},
+			},
+		}
+		return c.SendMessageWithKeyboardMode(chatID, welcomeText, ParseModeMarkdownV2, kb)
+
+	case u.GetCourseStreamID == nil:
+		kb := &InlineKeyboardMarkup{
+			InlineKeyboard: [][]InlineKeyboardButton{
+				{{Text: "🔗 Выбрать тренинг", CallbackData: callbackPickStream}},
+			},
+		}
+		return c.SendMessageWithKeyboard(chatID,
+			"➡ _GetCourse подключён, но тренинг ещё не выбран_.\n\nБез тренинга материалы приходить не будут.", kb)
+
+	case u.TargetChatID == nil:
+		return c.SendChatPicker(chatID, ChatPickerInitial)
+
+	default:
+		text, kb, err := c.connectedMenu(ctx, u.TelegramID)
+		if err != nil {
+			return fmt.Errorf("connected menu: %w", err)
+		}
+		return c.SendMessageWithKeyboardMode(chatID, text, ParseModeMarkdownV2, kb)
+	}
+}
+
+func (c *Client) sendHelp(chatID int64) error {
+	kb := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{{Text: "⬅ Вернуться в меню", CallbackData: callbackBackToMenu}},
+		},
+	}
+	return c.SendMessageWithKeyboardMode(chatID, helpText, ParseModeMarkdownV2, kb)
 }
