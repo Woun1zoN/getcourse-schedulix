@@ -25,7 +25,9 @@ var welcomeText = strings.NewReplacer("{pad}", strings.Repeat("\u2800", 13)).Rep
 >2\. Выбрать *тренинг* для отслеживания\.
 >3\. Выбрать *канал* для *отправки материалов*\.{pad}
 
-❗ Ваши данные используются только для работы с GetCourse и не передаются другим пользователям\.`)
+❗ Ваши данные используются только для работы с GetCourse и не передаются другим пользователям\.
+
+ℹ️ /help — Список доступных команд`)
 
 var connectGetCourseMessage = strings.NewReplacer("{pad}", strings.Repeat("\u2800", 25)).Replace(`_🔗 Подключение GetCourse_
 

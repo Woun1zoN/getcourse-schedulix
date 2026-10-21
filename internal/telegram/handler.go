@@ -28,7 +28,18 @@ func (c *Client) connectedMenu(ctx context.Context, telegramID int64) (string, *
 }
 
 func (c *Client) renderConnectedMenu(u *user.User) (string, *InlineKeyboardMarkup) {
-	text := "_✅ GetCourse подключён_"
+	var text string
+
+	switch {
+	case u.GetCourseStreamID == nil && u.TargetChatID == nil:
+		text += "\n\n❗ Пока тренинг и чат не выбраны, материалы приходить не будут\\."
+	case u.GetCourseStreamID == nil:
+		text += "\n\n❗ Пока тренинг не выбран, материалы приходить не будут\\."
+	case u.TargetChatID == nil:
+		text += "\n\n❗ Пока чат не выбран, материалы приходить не будут\\."
+	default:
+		text += "\n\n✅ GetCourse подключён, новые материалы будут приходить автоматически\\."
+	}
 
 	if s := c.currentStream(u); s != nil {
 		text += "\n\n• Выбранный тренинг:\n📚 *" + escapeMarkdownV2(s.Name) + "*"
@@ -51,17 +62,10 @@ func (c *Client) renderConnectedMenu(u *user.User) (string, *InlineKeyboardMarku
 		}
 	}
 
+
 	text += "\n\n• Выбранный чат:\n" + chatName
-	switch {
-	case u.GetCourseStreamID == nil && u.TargetChatID == nil:
-		text += "\n\n❗ Пока тренинг и чат не выбраны, материалы приходить не будут\\."
-	case u.GetCourseStreamID == nil:
-		text += "\n\n❗ Пока тренинг не выбран, материалы приходить не будут\\."
-	case u.TargetChatID == nil:
-		text += "\n\n❗ Пока чат не выбран, материалы приходить не будут\\."
-	default:
-		text += "\n\n🔔 Новые материалы будут приходить автоматически\\."
-	}
+
+	text += "\n\nℹ️ /help — Список доступных команд"
 
 	kb := &InlineKeyboardMarkup{
     	InlineKeyboard: [][]InlineKeyboardButton{
