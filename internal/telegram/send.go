@@ -7,50 +7,12 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
-	"log/slog"
-
-	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
-	"github.com/Woun1zoN/getcourse-schedulix/internal/logging"
-    "github.com/Woun1zoN/getcourse-schedulix/internal/storage"
 )
-
-type ChatPickerMode int
-
-type Client struct {
-	token        string
-	chatID       string
-	userService  *user.Service
-	client       *http.Client
-	logger 	     *slog.Logger
-    sessionStore *storage.SessionStore
-    getCourseBaseURL string
-}
 
 type response struct {
 	OK          bool   `json:"ok"`
 	Description string `json:"description"`
 }
-
-type linkPreviewOptions struct {
-	IsDisabled bool `json:"is_disabled"`
-}
-
-func NewClient(token, chatID, getCourseBaseURL string, userService *user.Service, sessionStore *storage.SessionStore) *Client {
-	return &Client{
-		token:        token,
-		chatID:       chatID,
-		userService:  userService,
-		client:       &http.Client{},
-		logger: 	  logging.NewLogger(),
-        sessionStore: sessionStore,
-        getCourseBaseURL: getCourseBaseURL,
-	}
-}
-
-const (
-	ParseModeMarkdown   = "Markdown"
-	ParseModeMarkdownV2 = "MarkdownV2"
-)
 
 func (c *Client) SendMessageWithKeyboard(chatID int64, text string, kb *InlineKeyboardMarkup) error {
 	return c.SendMessageWithKeyboardMode(chatID, text, ParseModeMarkdown, kb)
@@ -78,7 +40,7 @@ func (c *Client) SendPhoto(chatID int64, path string, caption string) error {
 		return err
 	}
 
-	if err := writer.WriteField("parse_mode", "Markdown"); err != nil {
+	if err := writer.WriteField("parse_mode", ParseModeMarkdown); err != nil {
 		return err
 	}
 
@@ -151,7 +113,7 @@ func (c *Client) SendNewDocumentLog(documentName, documentURL, lessonID, lessonU
     }{
         ChatID: fmt.Sprintf("%d", logChatID),
         Text:   message,
-		ParseMode: "Markdown",
+		ParseMode: ParseModeMarkdown,
     }
 
     data, err := json.Marshal(payload)
@@ -212,7 +174,7 @@ func (c *Client) SendMessage(chatID int64, text string) error {
     }{
         ChatID:                chatID,
         Text:                  text,
-        ParseMode:             "Markdown",
+        ParseMode:             ParseModeMarkdown,
         DisableWebPagePreview: true,
     }
 
@@ -253,7 +215,7 @@ func (c *Client) SendMessageWithKeyboardMode(chatID int64, text, parseMode strin
         Text: text,
         ParseMode: parseMode,
         ReplyMarkup: replyMarkup,
-        LinkPreviewOptions: &linkPreviewOptions{IsDisabled: true},
+        LinkPreviewOptions: &LinkPreviewOptions{IsDisabled: true},
     }
 
     data, err := json.Marshal(payload)
@@ -283,88 +245,8 @@ func (c *Client) SendMessageWithKeyboardMode(chatID int64, text, parseMode strin
     return nil
 }
 
-const (
-	chatRequestGroup = 1
-	chatRequestChannel = 2
-)
-
-const (
-    ChatPickerInitial ChatPickerMode = iota
-    ChatPickerChange
-)
-
-func (c *Client) SendChatPicker(chatID int64, mode ChatPickerMode) error {
-    skipButtonText := "➡ Пропустить"
-
-    if mode == ChatPickerChange {
-        skipButtonText = "➖ Без чата"
-    }
-
-    kb := &ReplyKeyboardMarkup{
-	    ResizeKeyboard:  true,
-	    OneTimeKeyboard: true,
-	    Keyboard: [][]KeyboardButton{
-	    	{
-	    		{
-	    			Text: "💬 Личные сообщения",
-	    		},
-	    	},
-	    	{
-	    		{
-	    			Text: "👥 Выбрать группу",
-	    			RequestChat: &KeyboardButtonRequestChat{
-	    				RequestID:     chatRequestGroup,
-	    				ChatIsChannel: false,
-	    				BotIsMember:   true,
-                        RequestTitle:  true,
-	    				UserAdministratorRights: &ChatAdministratorRights{
-	    					CanManageChat: true,
-		    			},
-		    		},
-		    	},
-		    },
-		    {
-		    	{
-		    		Text: "📢 Выбрать канал",
-		    		RequestChat: &KeyboardButtonRequestChat{
-		    			RequestID:     chatRequestChannel,
-		    			ChatIsChannel: true,
-		    			BotIsMember:   true,
-		    			UserAdministratorRights: &ChatAdministratorRights{
-		    				CanManageChat: true,
-                            CanPostMessages: true,
-		    			},
-		    			BotAdministratorRights: &ChatAdministratorRights{
-		    				CanPostMessages: true,
-		    			},
-		    		},
-		    	},
-		    },
-            {
-                {
-                    Text: skipButtonText,
-                },
-            },
-	    },
-    }
-
-    return c.SendMessageWithKeyboardMode(
-        chatID,
-        "🔗 Выберите чат, куда Schedulix будет отправлять новые материалы.",
-        "",
-        kb,
-    )
-}
-
-func (c *Client) answerCallbackQuery(id string) error {
-    data, _ := json.Marshal(map[string]string{"callback_query_id": id})
-    resp, err := c.client.Post(
-        fmt.Sprintf("https://api.telegram.org/bot%s/answerCallbackQuery", c.token),
-        "application/json", bytes.NewReader(data),
-    )
-    if err != nil {
-        return err
-    }
-    defer resp.Body.Close()
-    return nil
+func (c *Client) SendMessageAndRemoveKeyboard(chatID int64, text string) error {
+	return c.SendMessageWithKeyboardMode(chatID, text, ParseModeMarkdownV2, &ReplyKeyboardRemove{
+		RemoveKeyboard: true,
+	})
 }

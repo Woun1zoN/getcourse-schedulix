@@ -74,7 +74,7 @@ type SendMessagePayload struct {
 	Text               string                 `json:"text"`
 	ParseMode          string                 `json:"parse_mode"`
 	ReplyMarkup        any                    `json:"reply_markup,omitempty"`
-	LinkPreviewOptions *linkPreviewOptions    `json:"link_preview_options,omitempty"`
+	LinkPreviewOptions *LinkPreviewOptions    `json:"link_preview_options,omitempty"`
 }
 
 type InlineKeyboardButton struct {
@@ -85,4 +85,8 @@ type InlineKeyboardButton struct {
 
 type InlineKeyboardMarkup struct {
 	InlineKeyboard [][]InlineKeyboardButton `json:"inline_keyboard"`
+}
+
+type LinkPreviewOptions struct {
+	IsDisabled bool `json:"is_disabled"`
 }
