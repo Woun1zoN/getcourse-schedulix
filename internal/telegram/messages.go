@@ -2,6 +2,8 @@ package telegram
 
 import (
 	"strings"
+
+	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
 )
 
 const (
@@ -59,5 +61,32 @@ var connectGetCourseMessage = strings.NewReplacer("{pad}", strings.Repeat("\u280
 
 var helpText = `_📖 Список команд_
 
-/start — Открыть главное меню
-/help — Cписок доступных команд`
+/start — Открыть приветственное меню
+/help — Cписок доступных команд
+/menu — Открыть главное меню`
+
+func startCommandText(u *user.User) string {
+	var status string
+
+	switch {
+	case u.GetCourseCookie == nil:
+		status = "❗ Статус: GetCourse не подключён\\."
+	case u.GetCourseStreamID == nil && u.TargetChatID == nil:
+		status = "❗ Статус: тренинг и чат не выбраны, материалы приходить не будут\\."
+	case u.GetCourseStreamID == nil:
+		status = "❗ Статус: тренинг не выбран, материалы приходить не будут\\."
+	case u.TargetChatID == nil:
+		status = "❗ Статус: чат не выбран, материалы приходить не будут\\."
+	default:
+		status = "✅ Статус: GetCourse подключён, новые материалы будут приходить автоматически\\."
+	}
+
+	return `_👋 Добро пожаловать в GetCourse Schedulix\!_
+
+
+>*Schedulix* — бесплатный Telegram\-бот, который помогает отслеживать тренинги в GetCourse и получать новые материалы прямо в Telegram\.
+
+` + status + `
+
+ℹ️ /help — Список доступных команд`
+}

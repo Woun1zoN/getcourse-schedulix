@@ -46,6 +46,16 @@ func (c *Client) handleMessage(message *Message) error {
 		return c.sendHelp(message.Chat.ID)
 	}
 
+	if message.Text == "/menu" {
+		c.logger.Info(
+			"telegram command",
+			slog.String("command", "/menu"),
+			slog.Int64("telegram_id", message.From.ID),
+		)
+
+		return c.sendMenu(message.Chat.ID, u.TelegramID)
+	}
+
 	if message.Text == "💬 Личные сообщения" {
 		if err := c.userService.ResetTargetChat(ctx, message.From.ID); err != nil {
 			return fmt.Errorf("reset target chat: %w", err)

@@ -40,14 +40,7 @@ func (c *Client) handleCallbackQuery(cq *CallbackQuery) error {
 		return c.handleSkipStream(cq)
 
 	case cq.Data == callbackBackToMenu:
-		ctx := context.Background()
-
-		u, err := c.userService.GetOrCreate(ctx, cq.From.ID)
-		if err != nil {
-			return err
-		}
-
-		return c.sendStartScreen(ctx, cq.Message.Chat.ID, u)
+		return c.sendMenu(cq.Message.Chat.ID, cq.From.ID)
 	}
 
 	return nil

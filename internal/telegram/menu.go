@@ -100,11 +100,12 @@ func (c *Client) sendStartScreen(ctx context.Context, chatID int64, u *user.User
 		return c.SendChatPicker(chatID, ChatPickerInitial)
 
 	default:
-		text, kb, err := c.connectedMenu(ctx, u.TelegramID)
-		if err != nil {
-			return fmt.Errorf("connected menu: %w", err)
+    	kb := &InlineKeyboardMarkup{
+			InlineKeyboard: [][]InlineKeyboardButton{
+				{{Text: "➡ Перейти в меню", CallbackData: callbackBackToMenu}},
+			},
 		}
-		return c.SendMessageWithKeyboardMode(chatID, text, ParseModeMarkdownV2, kb)
+    	return c.SendMessageWithKeyboardMode(chatID, startCommandText(u), ParseModeMarkdownV2, kb)
 	}
 }
 
@@ -115,4 +116,27 @@ func (c *Client) sendHelp(chatID int64) error {
 		},
 	}
 	return c.SendMessageWithKeyboardMode(chatID, helpText, ParseModeMarkdownV2, kb)
+}
+
+func (c *Client) sendMenu(chatID, telegramID int64) error {
+	ctx := context.Background()
+
+    u, err := c.userService.GetOrCreate(ctx, telegramID)
+    if err != nil {
+        return fmt.Errorf("get user: %w", err)
+    }
+
+	if err := c.sessionStore.ClearState(ctx, u.TelegramID); err != nil {
+		return fmt.Errorf("clear session state: %w", err)
+	}
+
+    if u.GetCourseCookie == nil {
+        kb := &InlineKeyboardMarkup{InlineKeyboard: [][]InlineKeyboardButton{
+            {{Text: "🔗 Подключить GetCourse", CallbackData: callbackConnectGetCourse}},
+        }}
+        return c.SendMessageWithKeyboardMode(chatID, welcomeText, ParseModeMarkdownV2, kb)
+    }
+
+    text, kb := c.renderConnectedMenu(u)
+    return c.SendMessageWithKeyboardMode(chatID, text, ParseModeMarkdownV2, kb)
 }
