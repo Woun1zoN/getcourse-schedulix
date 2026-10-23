@@ -16,6 +16,7 @@ func NewRedisClient(addr, password string, db int) (*redis.Client, error) {
 
 	ctx := context.Background()
 	if err := rdb.Ping(ctx).Err(); err != nil {
+		_ = rdb.Close()
 		return nil, fmt.Errorf("redis: connect: %w", err)
 	}
 
