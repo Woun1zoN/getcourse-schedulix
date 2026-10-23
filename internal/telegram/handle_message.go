@@ -27,6 +27,10 @@ func (c *Client) handleMessage(message *Message) error {
 	}
 
 	if message.Text == "/start" {
+		if err := c.sessionStore.ClearState(ctx, message.From.ID); err != nil {
+			return fmt.Errorf("clear session state: %w", err)
+		}
+
 		c.logger.Info(
 			"telegram command",
 			slog.String("command", "/start"),
@@ -37,6 +41,10 @@ func (c *Client) handleMessage(message *Message) error {
 	}
 
 	if message.Text == "/help" {
+		if err := c.sessionStore.ClearState(ctx, message.From.ID); err != nil {
+			return fmt.Errorf("clear session state: %w", err)
+		}
+
 		c.logger.Info(
 			"telegram command",
 			slog.String("command", "/help"),
@@ -47,6 +55,10 @@ func (c *Client) handleMessage(message *Message) error {
 	}
 
 	if message.Text == "/menu" {
+		if err := c.sessionStore.ClearState(ctx, message.From.ID); err != nil {
+			return fmt.Errorf("clear session state: %w", err)
+		}
+
 		c.logger.Info(
 			"telegram command",
 			slog.String("command", "/menu"),
@@ -57,10 +69,18 @@ func (c *Client) handleMessage(message *Message) error {
 	}
 
 	if message.Text == "/delete" {
+		if err := c.sessionStore.ClearState(ctx, message.From.ID); err != nil {
+			return fmt.Errorf("clear session state: %w", err)
+		}
+
 		return c.sendDeleteConfirmation(message.Chat.ID)
 	}
 
 	if message.Text == "💬 Личные сообщения" {
+		if err := c.sessionStore.ClearState(ctx, message.From.ID); err != nil {
+			return fmt.Errorf("clear session state: %w", err)
+		}
+
 		if err := c.userService.ResetTargetChat(ctx, message.From.ID); err != nil {
 			return fmt.Errorf("reset target chat: %w", err)
 		}
@@ -74,6 +94,10 @@ func (c *Client) handleMessage(message *Message) error {
 	}
 
 	if message.Text == "➡ Пропустить" || message.Text == "➖ Без чата" {
+		if err := c.sessionStore.ClearState(ctx, message.From.ID); err != nil {
+			return fmt.Errorf("clear session state: %w", err)
+		}
+
 		if err := c.userService.ClearTargetChat(ctx, message.From.ID); err != nil {
 			return fmt.Errorf("clear target chat: %w", err)
 		}
