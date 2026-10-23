@@ -33,7 +33,7 @@ func (c *Client) handleMessage(message *Message) error {
 			slog.Int64("telegram_id", message.From.ID),
 		)
 
-		return c.sendStartScreen(ctx, message.Chat.ID, u)
+		return c.sendStartScreen(message.Chat.ID, u)
 	}
 
 	if message.Text == "/help" {
