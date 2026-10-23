@@ -1,25 +1,25 @@
 package main
 
 import (
+	"context"
+	"encoding/base64"
 	"log"
 	"os"
-	"time"
-	"context"
-	"strconv"
 	"os/signal"
+	"strconv"
 	"syscall"
-	"encoding/base64"
+	"time"
 
 	"github.com/joho/godotenv"
 
 	"github.com/Woun1zoN/getcourse-schedulix/internal/app"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/crypto"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/database"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/database/migrations"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/getcourse"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/storage"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram"
-	"github.com/Woun1zoN/getcourse-schedulix/internal/database"
-	"github.com/Woun1zoN/getcourse-schedulix/internal/database/migrations"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
-	"github.com/Woun1zoN/getcourse-schedulix/internal/crypto"
 )
 
 func main() {
@@ -37,22 +37,22 @@ func main() {
 
 	key, err := base64.StdEncoding.DecodeString(os.Getenv("COOKIE_ENC_KEY"))
 	if err != nil {
-    	log.Fatal(err)
+		log.Fatal(err)
 	}
 
 	cryptor, err := crypto.NewCryptor(key)
 	if err != nil {
-    	log.Fatal(err)
+		log.Fatal(err)
 	}
 
 	const getCourseBaseURL = "https://shtpt.getcourse.ru"
 
 	// Database migrations
 	if err := migrations.Run(
-    	databaseURL,
-    	"file:///app/internal/database/migrations/sql",
+		databaseURL,
+		"file:///app/internal/database/migrations/sql",
 	); err != nil {
-    	log.Fatal(err)
+		log.Fatal(err)
 	}
 
 	// Database initialization
@@ -65,16 +65,16 @@ func main() {
 	// Redis initialization
 	redisDB, err := strconv.Atoi(os.Getenv("REDIS_DB"))
 	if err != nil {
-    	log.Fatalf("parse REDIS_DB: %v", err)
+		log.Fatalf("parse REDIS_DB: %v", err)
 	}
 
 	redisClient, err := storage.NewRedisClient(
-    	redisAddr,
+		redisAddr,
 		redisPassword,
-    	redisDB,
+		redisDB,
 	)
 	if err != nil {
-    	log.Fatal(err)
+		log.Fatal(err)
 	}
 	defer redisClient.Close()
 
@@ -91,18 +91,18 @@ func main() {
 	telegramClient := telegram.NewClient(telegramToken, telegramChatID, getCourseBaseURL, userService, sessionStore)
 
 	go func() {
-    	if err := telegramClient.Run(ctx); err != nil {
-        	log.Fatal(err)
-    	}
+		if err := telegramClient.Run(ctx); err != nil {
+			log.Fatal(err)
+		}
 	}()
 
 	// Run the application
 	runner := app.NewRunner(
-    	getCourseClient,
-    	redisClient,
-    	telegramClient,
+		getCourseClient,
+		redisClient,
+		telegramClient,
 		userService,
-    	5*time.Minute,
+		5*time.Minute,
 	)
 
 	runner.Run(ctx)

@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-    "net/http"
 	"log"
+	"net/http"
 )
 
 type User struct {
-    ID int64 `json:"id"`
+	ID int64 `json:"id"`
 }
 
 func (c *Client) getUpdates(ctx context.Context, offset int) ([]Update, error) {

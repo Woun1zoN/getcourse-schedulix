@@ -4,21 +4,21 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Woun1zoN/getcourse-schedulix/internal/getcourse"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/crypto"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/getcourse"
 )
 
 type Service struct {
-	repository 	    *Repository
+	repository      *Repository
 	getCourseClient *getcourse.Client
 	cryptor         *crypto.Cryptor
 }
 
 func NewService(repository *Repository, getCourseClient *getcourse.Client, cryptor *crypto.Cryptor) *Service {
 	return &Service{
-		repository: repository,
+		repository:      repository,
 		getCourseClient: getCourseClient,
-		cryptor: cryptor,
+		cryptor:         cryptor,
 	}
 }
 
@@ -29,22 +29,22 @@ func (s *Service) GetOrCreate(ctx context.Context, telegramID int64) (*User, err
 	}
 
 	if user != nil {
-    	if user.GetCourseCookie != nil {
-        	cookie, err := s.cryptor.Decrypt(*user.GetCourseCookie)
-        	if err != nil {
-        	    return nil, fmt.Errorf("decrypt getcourse cookie: %w", err)
-        	}
+		if user.GetCourseCookie != nil {
+			cookie, err := s.cryptor.Decrypt(*user.GetCourseCookie)
+			if err != nil {
+				return nil, fmt.Errorf("decrypt getcourse cookie: %w", err)
+			}
 
-        	user.GetCourseCookie = &cookie
-    	}
+			user.GetCourseCookie = &cookie
+		}
 
-    	return user, nil
+		return user, nil
 	}
 
 	return s.repository.Create(ctx, telegramID)
 }
 
-func (s *Service) ConnectGetCourse(ctx context.Context, telegramID int64, cookie string,) error {
+func (s *Service) ConnectGetCourse(ctx context.Context, telegramID int64, cookie string) error {
 	client := s.getCourseClient.WithCookies(cookie)
 
 	if err := client.ValidateCookie(); err != nil {
@@ -52,9 +52,9 @@ func (s *Service) ConnectGetCourse(ctx context.Context, telegramID int64, cookie
 	}
 
 	encrypted, err := s.cryptor.Encrypt(cookie)
-    if err != nil {
-        return fmt.Errorf("encrypt getcourse cookie: %w", err)
-    }
+	if err != nil {
+		return fmt.Errorf("encrypt getcourse cookie: %w", err)
+	}
 
 	if err := s.repository.UpdateCookie(ctx, telegramID, encrypted); err != nil {
 		return fmt.Errorf("update getcourse cookie: %w", err)
@@ -86,11 +86,11 @@ func (s *Service) SelectStream(ctx context.Context, telegramID, streamID int64) 
 }
 
 func (s *Service) SelectTargetChat(ctx context.Context, telegramID int64, chatID int64, title string) error {
-    return s.repository.UpdateTargetChat(ctx, telegramID, chatID, title,)
+	return s.repository.UpdateTargetChat(ctx, telegramID, chatID, title)
 }
 
 func (s *Service) ResetTargetChat(ctx context.Context, telegramID int64) error {
-    return s.repository.ResetTargetChat(ctx, telegramID)
+	return s.repository.ResetTargetChat(ctx, telegramID)
 }
 
 func (s *Service) ClearTargetChat(ctx context.Context, telegramID int64) error {

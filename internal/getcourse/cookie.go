@@ -1,9 +1,9 @@
 package getcourse
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"errors"
 	"strings"
 )
 

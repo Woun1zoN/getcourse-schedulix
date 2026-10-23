@@ -53,21 +53,20 @@ func (c *Client) renderConnectedMenu(u *user.User) (string, *InlineKeyboardMarku
 		}
 	}
 
-
 	text += "\n\n• Выбранный чат:\n" + chatName
 
 	text += "\n\nℹ️ /help — Список доступных команд"
 
 	kb := &InlineKeyboardMarkup{
-    	InlineKeyboard: [][]InlineKeyboardButton{
-        	{
-        	    {Text: "🔀 Сменить тренинг", CallbackData: callbackPickStream},
-        	    {Text: "💬 Сменить чат", CallbackData: callbackPickChat},
-        	},
-        	{
-        	    {Text: "🔄 Переподключить GetCourse", CallbackData: callbackConnectGetCourse},
-        	},
-    	},
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{
+				{Text: "🔀 Сменить тренинг", CallbackData: callbackPickStream},
+				{Text: "💬 Сменить чат", CallbackData: callbackPickChat},
+			},
+			{
+				{Text: "🔄 Переподключить GetCourse", CallbackData: callbackConnectGetCourse},
+			},
+		},
 	}
 
 	return text, kb
@@ -89,24 +88,24 @@ func (c *Client) sendHelp(chatID int64) error {
 func (c *Client) sendMenu(chatID, telegramID int64) error {
 	ctx := context.Background()
 
-    u, err := c.userService.GetOrCreate(ctx, telegramID)
-    if err != nil {
-        return fmt.Errorf("get user: %w", err)
-    }
+	u, err := c.userService.GetOrCreate(ctx, telegramID)
+	if err != nil {
+		return fmt.Errorf("get user: %w", err)
+	}
 
 	if err := c.sessionStore.ClearState(ctx, u.TelegramID); err != nil {
 		return fmt.Errorf("clear session state: %w", err)
 	}
 
-    if u.GetCourseCookie == nil {
-        kb := &InlineKeyboardMarkup{InlineKeyboard: [][]InlineKeyboardButton{
-            {{Text: "🔗 Подключить GetCourse", CallbackData: callbackConnectGetCourse}},
-        }}
-        return c.SendMessageWithKeyboardMode(chatID, welcomeText, ParseModeMarkdownV2, kb)
-    }
+	if u.GetCourseCookie == nil {
+		kb := &InlineKeyboardMarkup{InlineKeyboard: [][]InlineKeyboardButton{
+			{{Text: "🔗 Подключить GetCourse", CallbackData: callbackConnectGetCourse}},
+		}}
+		return c.SendMessageWithKeyboardMode(chatID, welcomeText, ParseModeMarkdownV2, kb)
+	}
 
-    text, kb := c.renderConnectedMenu(u)
-    return c.SendMessageWithKeyboardMode(chatID, text, ParseModeMarkdownV2, kb)
+	text, kb := c.renderConnectedMenu(u)
+	return c.SendMessageWithKeyboardMode(chatID, text, ParseModeMarkdownV2, kb)
 }
 
 func (c *Client) startKeyboard(u *user.User) *InlineKeyboardMarkup {

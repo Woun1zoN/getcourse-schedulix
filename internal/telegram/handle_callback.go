@@ -2,8 +2,8 @@ package telegram
 
 import (
 	"context"
-	"strings"
 	"fmt"
+	"strings"
 )
 
 const (

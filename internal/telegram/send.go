@@ -96,153 +96,153 @@ func (c *Client) SendPhoto(chatID int64, path string, caption string) error {
 }
 
 func (c *Client) SendNewDocumentLog(documentName, documentURL, lessonID, lessonURL string, fileSize float64, checked, newDocuments, logChatID int64) error {
-    message := fmt.Sprintf(
-    "INFO | Получен новый документ\n\n"+
-        "📄 [%s](%s)\n\n"+
-        "• ID урока: `%s`\n"+
-        "• URL: %s\n"+
-        "• Размер файла: %.1f КБ\n\n"+
-        "Проверено уроков: %d · Найдено: %d",
-    documentName, documentURL, lessonID, lessonURL, fileSize, checked, newDocuments,
-    )
+	message := fmt.Sprintf(
+		"INFO | Получен новый документ\n\n"+
+			"📄 [%s](%s)\n\n"+
+			"• ID урока: `%s`\n"+
+			"• URL: %s\n"+
+			"• Размер файла: %.1f КБ\n\n"+
+			"Проверено уроков: %d · Найдено: %d",
+		documentName, documentURL, lessonID, lessonURL, fileSize, checked, newDocuments,
+	)
 
-    payload := struct {
-        ChatID string `json:"chat_id"`
-        Text   string `json:"text"`
+	payload := struct {
+		ChatID    string `json:"chat_id"`
+		Text      string `json:"text"`
 		ParseMode string `json:"parse_mode"`
-    }{
-        ChatID: fmt.Sprintf("%d", logChatID),
-        Text:   message,
+	}{
+		ChatID:    fmt.Sprintf("%d", logChatID),
+		Text:      message,
 		ParseMode: ParseModeMarkdown,
-    }
+	}
 
-    data, err := json.Marshal(payload)
-    if err != nil {
-        return err
-    }
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
 
-    url := fmt.Sprintf(
-        "https://api.telegram.org/bot%s/sendMessage",
-        c.token,
-    )
+	url := fmt.Sprintf(
+		"https://api.telegram.org/bot%s/sendMessage",
+		c.token,
+	)
 
-    req, err := http.NewRequest(
-        http.MethodPost,
-        url,
-        bytes.NewReader(data),
-    )
-    if err != nil {
-        return err
-    }
+	req, err := http.NewRequest(
+		http.MethodPost,
+		url,
+		bytes.NewReader(data),
+	)
+	if err != nil {
+		return err
+	}
 
-    req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/json")
 
-    resp, err := c.client.Do(req)
-    if err != nil {
-        return err
-    }
-    defer resp.Body.Close()
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 
-    var result response
+	var result response
 
-    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-        return fmt.Errorf("telegram: decode response: %w", err)
-    }
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return fmt.Errorf("telegram: decode response: %w", err)
+	}
 
-    if !result.OK {
-        return fmt.Errorf(
-            "telegram: status %d: %s",
-            resp.StatusCode,
-            result.Description,
-        )
-    }
+	if !result.OK {
+		return fmt.Errorf(
+			"telegram: status %d: %s",
+			resp.StatusCode,
+			result.Description,
+		)
+	}
 
-    return nil
+	return nil
 }
 
 func (c *Client) SendMessage(chatID int64, text string) error {
-    url := fmt.Sprintf(
-        "https://api.telegram.org/bot%s/sendMessage",
-        c.token,
-    )
+	url := fmt.Sprintf(
+		"https://api.telegram.org/bot%s/sendMessage",
+		c.token,
+	)
 
-    payload := struct {
-        ChatID                int64  `json:"chat_id"`
-        Text                  string `json:"text"`
-        ParseMode             string `json:"parse_mode"`
-        DisableWebPagePreview bool `json:"disable_web_page_preview,omitempty"`
-    }{
-        ChatID:                chatID,
-        Text:                  text,
-        ParseMode:             ParseModeMarkdown,
-        DisableWebPagePreview: true,
-    }
+	payload := struct {
+		ChatID                int64  `json:"chat_id"`
+		Text                  string `json:"text"`
+		ParseMode             string `json:"parse_mode"`
+		DisableWebPagePreview bool   `json:"disable_web_page_preview,omitempty"`
+	}{
+		ChatID:                chatID,
+		Text:                  text,
+		ParseMode:             ParseModeMarkdown,
+		DisableWebPagePreview: true,
+	}
 
-    body, err := json.Marshal(payload)
-    if err != nil {
-        return err
-    }
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
 
-    resp, err := c.client.Post(
-        url,
-        "application/json",
-        bytes.NewReader(body),
-    )
-    if err != nil {
-        return err
-    }
-    defer resp.Body.Close()
+	resp, err := c.client.Post(
+		url,
+		"application/json",
+		bytes.NewReader(body),
+	)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 
-    if resp.StatusCode != http.StatusOK {
-        return fmt.Errorf("telegram: sendMessage status %d", resp.StatusCode)
-    }
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("telegram: sendMessage status %d", resp.StatusCode)
+	}
 
-    var result response
-    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-        return err
-    }
+	var result response
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return err
+	}
 
-    if !result.OK {
-        return fmt.Errorf("telegram: sendMessage: %s", result.Description)
-    }
+	if !result.OK {
+		return fmt.Errorf("telegram: sendMessage: %s", result.Description)
+	}
 
-    return nil
+	return nil
 }
 
 func (c *Client) SendMessageWithKeyboardMode(chatID int64, text, parseMode string, replyMarkup any) error {
-    payload := SendMessagePayload{
-        ChatID: chatID,
-        Text: text,
-        ParseMode: parseMode,
-        ReplyMarkup: replyMarkup,
-        LinkPreviewOptions: &LinkPreviewOptions{IsDisabled: true},
-    }
+	payload := SendMessagePayload{
+		ChatID:             chatID,
+		Text:               text,
+		ParseMode:          parseMode,
+		ReplyMarkup:        replyMarkup,
+		LinkPreviewOptions: &LinkPreviewOptions{IsDisabled: true},
+	}
 
-    data, err := json.Marshal(payload)
-    if err != nil {
-        return err
-    }
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
 
-    resp, err := c.client.Post(
-        fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", c.token),
-        "application/json", bytes.NewReader(data),
-    )
-    if err != nil {
-        return err
-    }
-    defer resp.Body.Close()
+	resp, err := c.client.Post(
+		fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", c.token),
+		"application/json", bytes.NewReader(data),
+	)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 
-    var result response
+	var result response
 
-    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-    	return fmt.Errorf("telegram: decode response: %w", err)
-    }
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return fmt.Errorf("telegram: decode response: %w", err)
+	}
 
-    if !result.OK {
-    	return fmt.Errorf("telegram: sendMessage: %s", result.Description)
-    }
+	if !result.OK {
+		return fmt.Errorf("telegram: sendMessage: %s", result.Description)
+	}
 
-    return nil
+	return nil
 }
 
 func (c *Client) SendMessageAndRemoveKeyboard(chatID int64, text string) error {

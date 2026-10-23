@@ -57,7 +57,7 @@ func (r *Repository) Create(ctx context.Context, telegramID int64) (*User, error
 	return user, nil
 }
 
-func (r *Repository) UpdateCookie(ctx context.Context, telegramID int64, cookie string,) error {
+func (r *Repository) UpdateCookie(ctx context.Context, telegramID int64, cookie string) error {
 	_, err := r.db.Exec(
 		ctx,
 		`UPDATE users SET getcourse_cookie = $1 WHERE telegram_id = $2`,
@@ -105,15 +105,15 @@ func (r *Repository) UpdateStream(ctx context.Context, telegramID, streamID int6
 }
 
 func (r *Repository) UpdateTargetChat(ctx context.Context, telegramID int64, chatID int64, title string) error {
-    _, err := r.db.Exec(
-        ctx,
-        `UPDATE users SET target_chat_id = $1, target_chat_title = $2 WHERE telegram_id = $3`,
-        chatID,
-        title,
-        telegramID,
-    )
+	_, err := r.db.Exec(
+		ctx,
+		`UPDATE users SET target_chat_id = $1, target_chat_title = $2 WHERE telegram_id = $3`,
+		chatID,
+		title,
+		telegramID,
+	)
 
-    return err
+	return err
 }
 
 func (r *Repository) ResetTargetChat(ctx context.Context, telegramID int64) error {

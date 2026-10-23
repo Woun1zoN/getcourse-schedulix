@@ -1,8 +1,8 @@
 package getcourse
 
 import (
-	"strings"
 	"strconv"
+	"strings"
 
 	"golang.org/x/net/html"
 )

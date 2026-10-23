@@ -23,6 +23,6 @@ func InitDB(ctx context.Context, dbURL string) (*DBServer, error) {
 	}
 
 	return &DBServer{
-        DB: pool,
-    }, nil
+		DB: pool,
+	}, nil
 }

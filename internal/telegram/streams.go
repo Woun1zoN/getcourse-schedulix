@@ -11,7 +11,7 @@ import (
 )
 
 const callbackStreamPrefix = "stream:"
-const callbackSkipStream   = "skip_stream"
+const callbackSkipStream = "skip_stream"
 
 func (c *Client) SendStreamPicker(chatID int64, streams []getcourse.Stream) error {
 	if len(streams) == 0 {
