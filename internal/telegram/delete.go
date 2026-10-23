@@ -1,0 +1,50 @@
+package telegram
+
+import (
+	"context"
+	"fmt"
+)
+
+const callbackDeleteConfirm = "delete_confirm"
+
+func (c *Client) sendDeleteConfirmation(chatID int64) error {
+	kb := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{{Text: "⬅ Отмена", CallbackData: callbackCancel, Style: "primary"}},
+			{{Text: "Да, удалить", CallbackData: callbackDeleteConfirm, Style: "danger"}},
+		},
+	}
+
+	return c.SendMessageWithKeyboard(
+		chatID,
+		"⚠️ Все сохраненные данные будут удалены. Это действие необратимо.\n\nВы уверены, что хотите удалить все данные?",
+		kb,
+	)
+}
+
+func (c *Client) handleDeleteConfirm(cq *CallbackQuery) error {
+	ctx := context.Background()
+	chatID := cq.Message.Chat.ID
+
+	u, err := c.userService.GetByTelegramID(ctx, cq.From.ID)
+	if err != nil {
+		return fmt.Errorf("get user: %w", err)
+	}
+	if u == nil {
+		return c.SendMessage(chatID, "Нечего удалять, ваших данных нет 🥀")
+	}
+
+	if err := c.sessionStore.ClearState(ctx, cq.From.ID); err != nil {
+		return fmt.Errorf("clear session state: %w", err)
+	}
+
+	if err := c.sessionStore.DeleteHashes(ctx, u.ID); err != nil {
+		return fmt.Errorf("delete redis hashes: %w", err)
+	}
+
+	if err := c.userService.Delete(ctx, cq.From.ID); err != nil {
+		return fmt.Errorf("delete user: %w", err)
+	}
+
+	return c.SendMessage(chatID, "✅ Ваши данные удалены. Нажмите /start, чтобы начать заново.")
+}

@@ -59,11 +59,15 @@ var connectGetCourseMessage = strings.NewReplacer("{pad}", strings.Repeat("\u280
 
 ❗ Эта строка даёт полный доступ к вашему аккаунту GetCourse\. Никому её не передавайте, кроме этого бота\.`)
 
-var helpText = `_📖 Список команд_
+var helpText = `*📖 Доступные команды*
 
+*Меню*
 /start — Открыть приветственное меню
 /help — Cписок доступных команд
-/menu — Открыть главное меню`
+/menu — Открыть главное меню
+
+*Опции*
+/delete — Удалить все ваши данные`
 
 func startCommandText(u *user.User) string {
 	var status string

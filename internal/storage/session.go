@@ -40,3 +40,11 @@ func (s *SessionStore) ClearState(ctx context.Context, telegramID int64) error {
 func key(telegramID int64) string {
     return fmt.Sprintf("session:%d", telegramID)
 }
+
+func HashesKey(userID int64) string {
+    return fmt.Sprintf("docs:hashes:%d", userID)
+}
+
+func (s *SessionStore) DeleteHashes(ctx context.Context, userID int64) error {
+    return s.rdb.Del(ctx, HashesKey(userID)).Err()
+}

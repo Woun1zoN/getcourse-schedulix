@@ -139,3 +139,8 @@ func (r *Repository) ClearStream(ctx context.Context, telegramID int64) error {
 
 	return err
 }
+
+func (r *Repository) DeleteByTelegramID(ctx context.Context, telegramID int64) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM users WHERE telegram_id = $1`, telegramID)
+	return err
+}

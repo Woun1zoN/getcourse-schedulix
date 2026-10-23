@@ -100,3 +100,11 @@ func (s *Service) ClearTargetChat(ctx context.Context, telegramID int64) error {
 func (s *Service) ClearStream(ctx context.Context, telegramID int64) error {
 	return s.repository.ClearStream(ctx, telegramID)
 }
+
+func (s *Service) GetByTelegramID(ctx context.Context, telegramID int64) (*User, error) {
+	return s.repository.GetByTelegramID(ctx, telegramID)
+}
+
+func (s *Service) Delete(ctx context.Context, telegramID int64) error {
+	return s.repository.DeleteByTelegramID(ctx, telegramID)
+}

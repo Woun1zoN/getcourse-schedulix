@@ -41,6 +41,9 @@ func (c *Client) handleCallbackQuery(cq *CallbackQuery) error {
 
 	case cq.Data == callbackBackToMenu:
 		return c.sendMenu(cq.Message.Chat.ID, cq.From.ID)
+
+	case cq.Data == callbackDeleteConfirm:
+		return c.handleDeleteConfirm(cq)
 	}
 
 	return nil

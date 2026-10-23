@@ -56,6 +56,10 @@ func (c *Client) handleMessage(message *Message) error {
 		return c.sendMenu(message.Chat.ID, u.TelegramID)
 	}
 
+	if message.Text == "/delete" {
+		return c.sendDeleteConfirmation(message.Chat.ID)
+	}
+
 	if message.Text == "💬 Личные сообщения" {
 		if err := c.userService.ResetTargetChat(ctx, message.From.ID); err != nil {
 			return fmt.Errorf("reset target chat: %w", err)
