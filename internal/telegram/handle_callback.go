@@ -12,6 +12,8 @@ const (
 	callbackPickChat         = "pick_chat"
 	callbackCancel           = "cancel"
 	callbackBackToMenu       = "back_to_menu"
+	callbackDelete           = "delete"
+	callbackDeleteConfirm    = "delete_confirm"
 )
 
 func (c *Client) handleCallbackQuery(cq *CallbackQuery) error {
@@ -44,6 +46,9 @@ func (c *Client) handleCallbackQuery(cq *CallbackQuery) error {
 
 	case cq.Data == callbackDeleteConfirm:
 		return c.handleDeleteConfirm(cq)
+
+	case cq.Data == callbackDelete:
+		return c.sendDeleteConfirmation(cq.Message.Chat.ID)
 	}
 
 	return nil

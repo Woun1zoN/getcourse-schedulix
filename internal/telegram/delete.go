@@ -5,8 +5,6 @@ import (
 	"fmt"
 )
 
-const callbackDeleteConfirm = "delete_confirm"
-
 func (c *Client) sendDeleteConfirmation(chatID int64) error {
 	kb := &InlineKeyboardMarkup{
 		InlineKeyboard: [][]InlineKeyboardButton{
@@ -17,7 +15,7 @@ func (c *Client) sendDeleteConfirmation(chatID int64) error {
 
 	return c.SendMessageWithKeyboard(
 		chatID,
-		"⚠️ Все сохраненные данные будут удалены. Это действие необратимо.\n\nВы уверены, что хотите удалить все данные?",
+		"⚠️ Все сохраненные настройки и привязка к GetCourse *будут удалены*. Это действие необратимо.\n\n*Вы уверены, что хотите удалить все данные?*",
 		kb,
 	)
 }

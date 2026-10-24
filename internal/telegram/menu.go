@@ -66,6 +66,9 @@ func (c *Client) renderConnectedMenu(u *user.User) (string, *InlineKeyboardMarku
 			{
 				{Text: "🔄 Переподключить GetCourse", CallbackData: callbackConnectGetCourse},
 			},
+			{
+				{Text: "🗑 Удалить мои данные", CallbackData: callbackDelete},
+			},
 		},
 	}
 
@@ -122,13 +125,16 @@ func (c *Client) startKeyboard(u *user.User) *InlineKeyboardMarkup {
 		setupBtn = &InlineKeyboardButton{Text: "💬 Выбрать чат", CallbackData: callbackPickChat}
 	}
 
-	if setupBtn == nil {
-		return &InlineKeyboardMarkup{
-			InlineKeyboard: [][]InlineKeyboardButton{{menuBtn}},
-		}
+	rows := [][]InlineKeyboardButton{{menuBtn}}
+	if setupBtn != nil {
+		rows = [][]InlineKeyboardButton{{menuBtn, *setupBtn}}
 	}
 
-	return &InlineKeyboardMarkup{
-		InlineKeyboard: [][]InlineKeyboardButton{{menuBtn, *setupBtn}},
+	if u.GetCourseCookie != nil {
+		rows = append(rows, []InlineKeyboardButton{
+			{Text: "🗑 Удалить мои данные", CallbackData: callbackDelete},
+		})
 	}
+
+	return &InlineKeyboardMarkup{InlineKeyboard: rows}
 }
