@@ -88,9 +88,7 @@ func (c *Client) sendHelp(chatID int64) error {
 	return c.SendMessageWithKeyboardMode(chatID, helpText, ParseModeMarkdownV2, kb)
 }
 
-func (c *Client) sendMenu(chatID, telegramID int64) error {
-	ctx := context.Background()
-
+func (c *Client) sendMenu(ctx context.Context, chatID, telegramID int64) error {
 	u, err := c.userService.GetOrCreate(ctx, telegramID)
 	if err != nil {
 		return fmt.Errorf("get user: %w", err)

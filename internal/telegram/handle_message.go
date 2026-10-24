@@ -10,9 +10,7 @@ import (
 	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
 )
 
-func (c *Client) handleMessage(message *Message) error {
-	ctx := context.Background()
-
+func (c *Client) handleMessage(ctx context.Context, message *Message) error {
 	if message.Chat.Type != "private" {
 		return nil
 	}
@@ -23,7 +21,7 @@ func (c *Client) handleMessage(message *Message) error {
 	}
 
 	if message.ChatShared != nil {
-		return c.handleChatShared(message)
+		return c.handleChatShared(ctx, message)
 	}
 
 	if message.Text == "/start" {
@@ -65,7 +63,7 @@ func (c *Client) handleMessage(message *Message) error {
 			slog.Int64("telegram_id", message.From.ID),
 		)
 
-		return c.sendMenu(message.Chat.ID, u.TelegramID)
+		return c.sendMenu(ctx, message.Chat.ID, u.TelegramID)
 	}
 
 	if message.Text == "/delete" {
@@ -167,8 +165,8 @@ func (c *Client) handleCookieInput(ctx context.Context, u *user.User, message *M
 	return c.SendStreamPicker(message.Chat.ID, streams)
 }
 
-func (c *Client) handlePickStream(cq *CallbackQuery) error {
-	u, err := c.userService.GetOrCreate(context.Background(), cq.From.ID)
+func (c *Client) handlePickStream(ctx context.Context, cq *CallbackQuery) error {
+	u, err := c.userService.GetOrCreate(ctx, cq.From.ID)
 	if err != nil {
 		return err
 	}
@@ -187,9 +185,7 @@ func (c *Client) handlePickStream(cq *CallbackQuery) error {
 	return c.SendStreamPicker(cq.From.ID, streams)
 }
 
-func (c *Client) handleChatShared(message *Message) error {
-	ctx := context.Background()
-
+func (c *Client) handleChatShared(ctx context.Context, message *Message) error {
 	if message.ChatShared == nil {
 		return nil
 	}
@@ -201,7 +197,7 @@ func (c *Client) handleChatShared(message *Message) error {
 	}
 
 	if err := c.userService.SelectTargetChat(
-		context.Background(),
+		ctx,
 		message.From.ID,
 		shared.ChatID,
 		shared.Title,

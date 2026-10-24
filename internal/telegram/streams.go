@@ -51,9 +51,7 @@ func (c *Client) SendStreamPicker(chatID int64, streams []getcourse.Stream) erro
 	)
 }
 
-func (c *Client) handleStreamSelected(cq *CallbackQuery) error {
-	ctx := context.Background()
-
+func (c *Client) handleStreamSelected(ctx context.Context, cq *CallbackQuery) error {
 	streamID, err := strconv.ParseInt(strings.TrimPrefix(cq.Data, callbackStreamPrefix), 10, 64)
 	if err != nil {
 		return nil

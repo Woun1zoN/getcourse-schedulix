@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
 
 type User struct {
@@ -67,14 +68,17 @@ func (c *Client) Run(ctx context.Context) error {
 		for _, update := range updates {
 			offset = update.UpdateID + 1
 
+			uctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+
 			var err error
 
 			switch {
 			case update.CallbackQuery != nil:
-				err = c.handleCallbackQuery(update.CallbackQuery)
+				err = c.handleCallbackQuery(uctx, update.CallbackQuery)
 			case update.Message != nil:
-				err = c.handleMessage(update.Message)
+				err = c.handleMessage(uctx, update.Message)
 			}
+			cancel()
 
 			if err != nil {
 				log.Printf("telegram: update %d: %v", update.UpdateID, err)

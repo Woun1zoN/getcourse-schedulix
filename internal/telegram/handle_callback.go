@@ -16,36 +16,36 @@ const (
 	callbackDeleteConfirm    = "delete_confirm"
 )
 
-func (c *Client) handleCallbackQuery(cq *CallbackQuery) error {
+func (c *Client) handleCallbackQuery(ctx context.Context, cq *CallbackQuery) error {
 	_ = c.answerCallbackQuery(cq.ID)
 
 	switch {
 	case strings.HasPrefix(cq.Data, callbackStreamPrefix):
-		return c.handleStreamSelected(cq)
+		return c.handleStreamSelected(ctx, cq)
 
 	case cq.Data == callbackPickStream:
-		return c.handlePickStream(cq)
+		return c.handlePickStream(ctx, cq)
 
 	case cq.Data == callbackPickChat:
 		return c.SendChatPicker(cq.Message.Chat.ID, ChatPickerChange)
 
 	case cq.Data == callbackConnectGetCourse:
-		if err := c.sessionStore.SetAwaitingCookie(context.Background(), cq.From.ID); err != nil {
+		if err := c.sessionStore.SetAwaitingCookie(ctx, cq.From.ID); err != nil {
 			return err
 		}
 		return c.SendMessageWithKeyboardMode(cq.Message.Chat.ID, connectGetCourseMessage, ParseModeMarkdownV2, cancelKeyboard())
 
 	case cq.Data == callbackCancel:
-		return c.handleCancel(cq)
+		return c.handleCancel(ctx, cq)
 
 	case cq.Data == callbackSkipStream:
-		return c.handleSkipStream(cq)
+		return c.handleSkipStream(ctx, cq)
 
 	case cq.Data == callbackBackToMenu:
-		return c.sendMenu(cq.Message.Chat.ID, cq.From.ID)
+		return c.sendMenu(ctx, cq.Message.Chat.ID, cq.From.ID)
 
 	case cq.Data == callbackDeleteConfirm:
-		return c.handleDeleteConfirm(cq)
+		return c.handleDeleteConfirm(ctx, cq)
 
 	case cq.Data == callbackDelete:
 		return c.sendDeleteConfirmation(cq.Message.Chat.ID)
@@ -54,9 +54,7 @@ func (c *Client) handleCallbackQuery(cq *CallbackQuery) error {
 	return nil
 }
 
-func (c *Client) handleCancel(cq *CallbackQuery) error {
-	ctx := context.Background()
-
+func (c *Client) handleCancel(ctx context.Context, cq *CallbackQuery) error {
 	if err := c.sessionStore.ClearState(ctx, cq.From.ID); err != nil {
 		return fmt.Errorf("clear session state: %w", err)
 	}
@@ -82,9 +80,7 @@ func (c *Client) handleCancel(cq *CallbackQuery) error {
 	return c.SendMessageWithKeyboardMode(chatID, welcomeText, ParseModeMarkdownV2, kb)
 }
 
-func (c *Client) handleSkipStream(cq *CallbackQuery) error {
-	ctx := context.Background()
-
+func (c *Client) handleSkipStream(ctx context.Context, cq *CallbackQuery) error {
 	if err := c.userService.ClearStream(ctx, cq.From.ID); err != nil {
 		return fmt.Errorf("clear stream: %w", err)
 	}

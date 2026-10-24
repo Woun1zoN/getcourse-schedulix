@@ -20,8 +20,7 @@ func (c *Client) sendDeleteConfirmation(chatID int64) error {
 	)
 }
 
-func (c *Client) handleDeleteConfirm(cq *CallbackQuery) error {
-	ctx := context.Background()
+func (c *Client) handleDeleteConfirm(ctx context.Context, cq *CallbackQuery) error {
 	chatID := cq.Message.Chat.ID
 
 	u, err := c.userService.GetByTelegramID(ctx, cq.From.ID)
