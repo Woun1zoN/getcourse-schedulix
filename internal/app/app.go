@@ -26,6 +26,13 @@ func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, sta
 		return err
 	}
 
+	baselined, err := state.IsBaselined(context.Background(), streamID)
+	if err != nil {
+		return fmt.Errorf("check baseline: %w", err)
+	}
+	baselineMode := !baselined
+
+	var failed atomic.Int64
 	var checked atomic.Int64
 	var newDocuments atomic.Int64
 	var sent atomic.Int64
@@ -55,6 +62,7 @@ func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, sta
 
 			documents, err := client.GetLessonDocuments(id)
 			if err != nil {
+				failed.Add(1)
 				printf("  Lesson ID: %s\n", id)
 				printf("  ERROR: %v\n\n", err)
 				logs[i] = logBuf.String()
@@ -69,6 +77,7 @@ func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, sta
 
 				data, err := client.DownloadDocument(document)
 				if err != nil {
+					failed.Add(1)
 					printf("  Lesson ID: %s\n", document.ID)
 					printf("  Document: %s\n", name)
 					printf("  URL: %s\n", document.URL)
@@ -77,6 +86,16 @@ func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, sta
 				}
 
 				fileSize := float64(len(data)) / 1024
+
+				if baselineMode {
+					if err := state.MarkProcessed(ctx, document.URL, data); err != nil {
+						failed.Add(1)
+						printf("  ERROR Redis MarkProcessed (baseline): %v\n\n", err)
+						continue
+					}
+					printf("  BASELINE: %s\n", name)
+					continue
+				}
 
 				changed, err := state.HasChanged(ctx, document.URL, data)
 				if err != nil {
@@ -154,6 +173,17 @@ func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, sta
 
 	if err := g.Wait(); err != nil {
 		return err
+	}
+
+	if baselineMode {
+		if failed.Load() == 0 {
+			if err := state.MarkBaselined(context.Background(), streamID); err != nil {
+				return fmt.Errorf("mark baselined: %w", err)
+			}
+			fmt.Println("Baseline completed, nothing sent")
+		} else {
+			fmt.Printf("Baseline incomplete (%d errors), will retry next tick\n", failed.Load())
+		}
 	}
 
 	for _, l := range logs {
