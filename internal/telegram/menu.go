@@ -76,6 +76,13 @@ func (c *Client) renderConnectedMenu(u *user.User) (string, *InlineKeyboardMarku
 }
 
 func (c *Client) sendStartScreen(chatID int64, u *user.User) error {
+	if u.GetCourseCookie == nil {
+		kb := &InlineKeyboardMarkup{InlineKeyboard: [][]InlineKeyboardButton{
+			{{Text: "🔗 Подключить GetCourse", CallbackData: callbackConnectGetCourse}},
+		}}
+		return c.SendMessageWithKeyboardMode(chatID, welcomeText, ParseModeMarkdownV2, kb)
+	}
+
 	return c.SendMessageWithKeyboardMode(chatID, startCommandText(u), ParseModeMarkdownV2, c.startKeyboard(u))
 }
 
@@ -115,8 +122,6 @@ func (c *Client) startKeyboard(u *user.User) *InlineKeyboardMarkup {
 	var setupBtn *InlineKeyboardButton
 
 	switch {
-	case u.GetCourseCookie == nil:
-		setupBtn = &InlineKeyboardButton{Text: "🔗 Подключить", CallbackData: callbackConnectGetCourse}
 	case u.GetCourseStreamID == nil:
 		setupBtn = &InlineKeyboardButton{Text: "📚 Выбрать тренинг", CallbackData: callbackPickStream}
 	case u.TargetChatID == nil:
