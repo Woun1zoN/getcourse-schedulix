@@ -57,11 +57,21 @@ func (c *Client) renderConnectedMenu(u *user.User) (string, *InlineKeyboardMarku
 
 	text += "\n\nℹ️ /help — Список доступных команд"
 
+	streamBtnText := "🔀 Сменить тренинг"
+	if u.GetCourseStreamID == nil {
+		streamBtnText = "📚 Выбрать тренинг"
+	}
+
+	chatBtnText := "💬 Сменить чат"
+	if u.TargetChatID == nil {
+		chatBtnText = "💬 Выбрать чат"
+	}
+
 	kb := &InlineKeyboardMarkup{
 		InlineKeyboard: [][]InlineKeyboardButton{
 			{
-				{Text: "🔀 Сменить тренинг", CallbackData: callbackPickStream},
-				{Text: "💬 Сменить чат", CallbackData: callbackPickChat},
+				{Text: streamBtnText, CallbackData: callbackPickStream},
+				{Text: chatBtnText, CallbackData: callbackPickChat},
 			},
 			{
 				{Text: "🔄 Переподключить GetCourse", CallbackData: callbackConnectGetCourse},
