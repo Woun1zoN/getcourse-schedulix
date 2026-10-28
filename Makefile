@@ -13,4 +13,7 @@ down:
 logs:
 	docker compose logs -f
 
-.PHONY: up up-d build down logs
+test-unit:
+	go test ./...
+
+.PHONY: up up-d build down logs test-unit
