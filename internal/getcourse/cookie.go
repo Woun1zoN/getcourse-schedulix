@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+var ErrCookieExpired = errors.New("getcourse: cookie invalid or expired")
+
 func (c *Client) ValidateCookie() error {
 	req, err := http.NewRequest(
 		http.MethodGet,
@@ -26,7 +28,11 @@ func (c *Client) ValidateCookie() error {
 	defer resp.Body.Close()
 
 	if strings.Contains(resp.Request.URL.Path, "/cms/system/login") {
-		return errors.New("getcourse: cookie невалидна или истекла")
+		return ErrCookieExpired
+	}
+
+	if resp.StatusCode >= 500 {
+		return fmt.Errorf("getcourse: validate: server status %d", resp.StatusCode)
 	}
 
 	return nil

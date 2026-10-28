@@ -136,6 +136,10 @@ func (c *Client) handleCookieInput(ctx context.Context, u *user.User, message *M
 		return fmt.Errorf("connect getcourse: %w", err)
 	}
 
+	if err := c.sessionStore.ClearExpiredNotified(ctx, u.TelegramID); err != nil {
+		return fmt.Errorf("clear expired flag: %w", err)
+	}
+
 	if err := c.sessionStore.ClearState(ctx, u.TelegramID); err != nil {
 		return fmt.Errorf("clear session state: %w", err)
 	}

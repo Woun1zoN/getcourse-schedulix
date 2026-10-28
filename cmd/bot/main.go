@@ -102,6 +102,7 @@ func main() {
 		redisClient,
 		telegramClient,
 		userService,
+		sessionStore,
 		5*time.Minute,
 	)
 

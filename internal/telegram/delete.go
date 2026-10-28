@@ -31,6 +31,10 @@ func (c *Client) handleDeleteConfirm(ctx context.Context, cq *CallbackQuery) err
 		return c.SendMessage(chatID, "Нечего удалять, ваших данных нет 🥀")
 	}
 
+	if err := c.sessionStore.ClearExpiredNotified(ctx, u.TelegramID); err != nil {
+		return fmt.Errorf("clear expired flag: %w", err)
+	}
+
 	if err := c.sessionStore.ClearState(ctx, cq.From.ID); err != nil {
 		return fmt.Errorf("clear session state: %w", err)
 	}

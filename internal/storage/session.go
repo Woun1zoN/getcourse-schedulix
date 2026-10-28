@@ -48,3 +48,15 @@ func HashesKey(userID int64) string {
 func (s *SessionStore) DeleteHashes(ctx context.Context, userID int64) error {
 	return s.rdb.Del(ctx, HashesKey(userID)).Err()
 }
+
+func expiredKey(telegramID int64) string {
+	return fmt.Sprintf("cookie_expired_notified:%d", telegramID)
+}
+
+func (s *SessionStore) MarkExpiredNotified(ctx context.Context, telegramID int64) (bool, error) {
+	return s.rdb.SetNX(ctx, expiredKey(telegramID), "1", 0).Result()
+}
+
+func (s *SessionStore) ClearExpiredNotified(ctx context.Context, telegramID int64) error {
+	return s.rdb.Del(ctx, expiredKey(telegramID)).Err()
+}

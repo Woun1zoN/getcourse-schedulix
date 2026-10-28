@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"log"
 	"time"
 
@@ -18,16 +19,20 @@ type Runner struct {
 	redisClient    *redis.Client
 	telegramClient *telegram.Client
 	userService    *user.Service
+	sessionStore   *storage.SessionStore
 	interval       time.Duration
+	notify         func(telegramID int64) error
 }
 
-func NewRunner(baseClient *getcourse.Client, redisClient *redis.Client, telegramClient *telegram.Client, userService *user.Service, interval time.Duration) *Runner {
+func NewRunner(baseClient *getcourse.Client, redisClient *redis.Client, telegramClient *telegram.Client, userService *user.Service, sessionStore *storage.SessionStore, interval time.Duration) *Runner {
 	return &Runner{
 		baseClient:     baseClient,
 		redisClient:    redisClient,
 		telegramClient: telegramClient,
 		userService:    userService,
+		sessionStore:   sessionStore,
 		interval:       interval,
+		notify:         telegramClient.SendReauthPrompt,
 	}
 }
 
@@ -46,9 +51,33 @@ func (r *Runner) tick(ctx context.Context) {
 		client := r.baseClient.WithCookies(*u.GetCourseCookie)
 		state := storage.NewRedisState(r.redisClient, storage.HashesKey(u.ID))
 
-		if err := InitApp(u.TelegramID, *u.TargetChatID, *u.GetCourseStreamID, client, state, r.telegramClient); err != nil {
-			log.Printf("user %d: %v", u.ID, err)
+		err := InitApp(u.TelegramID, *u.TargetChatID, *u.GetCourseStreamID, client, state, r.telegramClient)
+		if err == nil {
+			continue
 		}
+
+		if errors.Is(err, getcourse.ErrCookieExpired) {
+			r.handleExpiredCookie(ctx, u)
+			continue
+		}
+
+		log.Printf("user %d: %v", u.ID, err)
+	}
+}
+
+func (r *Runner) handleExpiredCookie(ctx context.Context, u user.User) {
+	first, err := r.sessionStore.MarkExpiredNotified(ctx, u.TelegramID)
+	if err != nil {
+		log.Printf("user %d: mark expired notified: %v", u.ID, err)
+		return
+	}
+	if !first {
+		return
+	}
+
+	if err := r.notify(u.TelegramID); err != nil {
+		log.Printf("user %d: send reauth prompt: %v", u.ID, err)
+		_ = r.sessionStore.ClearExpiredNotified(ctx, u.TelegramID)
 	}
 }
 
