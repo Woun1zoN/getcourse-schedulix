@@ -154,7 +154,7 @@ func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, sta
 
 				sent.Add(1)
 
-				if err := telegramClient.SendNewDocumentLog(document.Name, document.URL, document.ID, lessonURL, fileSize, checked.Load(), newDocuments.Load(), chatID); err != nil {
+				if err := telegramClient.SendNewMaterialNotice(document.Name, document.URL, document.ID, lessonURL, fileSize, checked.Load(), newDocuments.Load(), chatID); err != nil {
 					log.Printf("telegram log %s: %v", document.Name, err)
 				}
 

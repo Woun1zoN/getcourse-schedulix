@@ -98,9 +98,9 @@ func (c *Client) SendPhoto(chatID int64, path string, caption string) error {
 	return nil
 }
 
-func (c *Client) SendNewDocumentLog(documentName, documentURL, lessonID, lessonURL string, fileSize float64, checked, newDocuments, logChatID int64) error {
+func (c *Client) SendNewMaterialNotice(documentName, documentURL, lessonID, lessonURL string, fileSize float64, checked, newDocuments, logChatID int64) error {
 	message := fmt.Sprintf(
-		"INFO | Получен новый документ\n\n"+
+		"📚 Получен новый материал\n\n"+
 			"📄 [%s](%s)\n\n"+
 			"• ID урока: `%s`\n"+
 			"• URL: %s\n"+
@@ -109,58 +109,13 @@ func (c *Client) SendNewDocumentLog(documentName, documentURL, lessonID, lessonU
 		documentName, documentURL, lessonID, lessonURL, fileSize, checked, newDocuments,
 	)
 
-	payload := struct {
-		ChatID    string `json:"chat_id"`
-		Text      string `json:"text"`
-		ParseMode string `json:"parse_mode"`
-	}{
-		ChatID:    fmt.Sprintf("%d", logChatID),
-		Text:      message,
-		ParseMode: ParseModeMarkdown,
+	kb := &InlineKeyboardMarkup{
+		InlineKeyboard: [][]InlineKeyboardButton{
+			{{Text: "⬅ Меню", CallbackData: callbackBackToMenu}},
+		},
 	}
 
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-
-	url := fmt.Sprintf(
-		"https://api.telegram.org/bot%s/sendMessage",
-		c.token,
-	)
-
-	req, err := http.NewRequest(
-		http.MethodPost,
-		url,
-		bytes.NewReader(data),
-	)
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	var result response
-
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return fmt.Errorf("telegram: decode response: %w", err)
-	}
-
-	if !result.OK {
-		return fmt.Errorf(
-			"telegram: status %d: %s",
-			resp.StatusCode,
-			result.Description,
-		)
-	}
-
-	return nil
+	return c.SendMessageWithKeyboardMode(logChatID, message, ParseModeMarkdown, kb)
 }
 
 func (c *Client) SendMessage(chatID int64, text string) error {
