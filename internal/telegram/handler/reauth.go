@@ -1,16 +1,18 @@
-package telegram
+package handler
 
-func (c *Client) SendReauthPrompt(telegramID int64) error {
-	kb := &InlineKeyboardMarkup{
-		InlineKeyboard: [][]InlineKeyboardButton{
+import "github.com/Woun1zoN/getcourse-schedulix/internal/telegram/botapi"
+
+func (h *Handler) SendReauthPrompt(telegramID int64) error {
+	kb := &botapi.InlineKeyboardMarkup{
+		InlineKeyboard: [][]botapi.InlineKeyboardButton{
 			{{Text: "🔄 Переподключить GetCourse", CallbackData: callbackConnectGetCourse}},
 		},
 	}
 
-	return c.SendMessageWithKeyboardMode(
+	return h.client.SendMessageWithKeyboardMode(
 		telegramID,
 		"*⚠️ Сессия GetCourse истекла*\\. Новые материалы приходить не будут, пока вы не переподключите аккаунт\\.",
-		ParseModeMarkdownV2,
+		botapi.ParseModeMarkdownV2,
 		kb,
 	)
 }

@@ -13,10 +13,10 @@ import (
 	"github.com/Woun1zoN/getcourse-schedulix/internal/converter"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/getcourse"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/storage"
-	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram/botapi"
 )
 
-func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, state *storage.RedisState, telegramClient *telegram.Client) error {
+func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, state *storage.RedisState, telegramClient *botapi.Client, notifyMaterial func(documentName, documentURL, lessonID, lessonURL string, fileSize float64, checked, newDocuments, logChatID int64) error) error {
 	if err := client.ValidateCookie(); err != nil {
 		return fmt.Errorf("validate cookie: %w", err)
 	}
@@ -154,7 +154,7 @@ func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, sta
 
 				sent.Add(1)
 
-				if err := telegramClient.SendNewMaterialNotice(document.Name, document.URL, document.ID, lessonURL, fileSize, checked.Load(), newDocuments.Load(), chatID); err != nil {
+				if err := notifyMaterial(document.Name, document.URL, document.ID, lessonURL, fileSize, checked.Load(), newDocuments.Load(), chatID); err != nil {
 					log.Printf("telegram log %s: %v", document.Name, err)
 				}
 

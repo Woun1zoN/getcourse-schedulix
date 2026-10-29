@@ -1,14 +1,9 @@
-package telegram
+package handler
 
 import (
 	"strings"
 
 	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
-)
-
-const (
-	ParseModeMarkdown   = "Markdown"
-	ParseModeMarkdownV2 = "MarkdownV2"
 )
 
 var mdV2Replacer = strings.NewReplacer(

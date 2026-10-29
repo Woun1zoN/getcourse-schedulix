@@ -1,4 +1,8 @@
-package telegram
+package handler
+
+import (
+	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram/botapi"
+)
 
 type ChatPickerMode int
 
@@ -12,17 +16,17 @@ const (
 	chatRequestChannel = 2
 )
 
-func (c *Client) SendChatPicker(chatID int64, mode ChatPickerMode) error {
+func (h *Handler) SendChatPicker(chatID int64, mode ChatPickerMode) error {
 	skipButtonText := "➡ Пропустить"
 
 	if mode == ChatPickerChange {
 		skipButtonText = "➖ Без чата"
 	}
 
-	kb := &ReplyKeyboardMarkup{
+	kb := &botapi.ReplyKeyboardMarkup{
 		ResizeKeyboard:  true,
 		OneTimeKeyboard: true,
-		Keyboard: [][]KeyboardButton{
+		Keyboard: [][]botapi.KeyboardButton{
 			{
 				{
 					Text: "💬 Личные сообщения",
@@ -31,12 +35,12 @@ func (c *Client) SendChatPicker(chatID int64, mode ChatPickerMode) error {
 			{
 				{
 					Text: "👥 Выбрать группу",
-					RequestChat: &KeyboardButtonRequestChat{
+					RequestChat: &botapi.KeyboardButtonRequestChat{
 						RequestID:     chatRequestGroup,
 						ChatIsChannel: false,
 						BotIsMember:   true,
 						RequestTitle:  true,
-						UserAdministratorRights: &ChatAdministratorRights{
+						UserAdministratorRights: &botapi.ChatAdministratorRights{
 							CanManageChat: true,
 						},
 					},
@@ -45,15 +49,15 @@ func (c *Client) SendChatPicker(chatID int64, mode ChatPickerMode) error {
 			{
 				{
 					Text: "📢 Выбрать канал",
-					RequestChat: &KeyboardButtonRequestChat{
+					RequestChat: &botapi.KeyboardButtonRequestChat{
 						RequestID:     chatRequestChannel,
 						ChatIsChannel: true,
 						BotIsMember:   true,
-						UserAdministratorRights: &ChatAdministratorRights{
+						UserAdministratorRights: &botapi.ChatAdministratorRights{
 							CanManageChat:   true,
 							CanPostMessages: true,
 						},
-						BotAdministratorRights: &ChatAdministratorRights{
+						BotAdministratorRights: &botapi.ChatAdministratorRights{
 							CanPostMessages: true,
 						},
 					},
@@ -67,7 +71,7 @@ func (c *Client) SendChatPicker(chatID int64, mode ChatPickerMode) error {
 		},
 	}
 
-	return c.SendMessageWithKeyboardMode(
+	return h.client.SendMessageWithKeyboardMode(
 		chatID,
 		"🔗 Выберите чат, куда Schedulix будет отправлять новые материалы.",
 		"",

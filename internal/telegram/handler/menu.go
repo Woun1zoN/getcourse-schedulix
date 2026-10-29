@@ -1,24 +1,25 @@
-package telegram
+package handler
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram/botapi"
 )
 
-func (c *Client) connectedMenu(ctx context.Context, telegramID int64) (string, *InlineKeyboardMarkup, error) {
-	u, err := c.userService.GetOrCreate(ctx, telegramID)
+func (h *Handler) connectedMenu(ctx context.Context, telegramID int64) (string, *botapi.InlineKeyboardMarkup, error) {
+	u, err := h.userService.GetOrCreate(ctx, telegramID)
 	if err != nil {
 		return "", nil, fmt.Errorf("get user: %w", err)
 	}
 
-	text, kb := c.renderConnectedMenu(u)
+	text, kb := h.renderConnectedMenu(u)
 
 	return text, kb, nil
 }
 
-func (c *Client) renderConnectedMenu(u *user.User) (string, *InlineKeyboardMarkup) {
+func (h *Handler) renderConnectedMenu(u *user.User) (string, *botapi.InlineKeyboardMarkup) {
 	var text string
 
 	switch {
@@ -32,7 +33,7 @@ func (c *Client) renderConnectedMenu(u *user.User) (string, *InlineKeyboardMarku
 		text += "\n\n✅ GetCourse подключён, новые материалы будут приходить автоматически\\."
 	}
 
-	if s := c.currentStream(u); s != nil {
+	if s := h.currentStream(u); s != nil {
 		text += "\n\n• Выбранный тренинг:\n📚 *" + escapeMarkdownV2(s.Name) + "*"
 		if info := s.Info(); info != "" {
 			text += "\n" + escapeMarkdownV2(info)
@@ -67,8 +68,8 @@ func (c *Client) renderConnectedMenu(u *user.User) (string, *InlineKeyboardMarku
 		chatBtnText = "💬 Выбрать чат"
 	}
 
-	kb := &InlineKeyboardMarkup{
-		InlineKeyboard: [][]InlineKeyboardButton{
+	kb := &botapi.InlineKeyboardMarkup{
+		InlineKeyboard: [][]botapi.InlineKeyboardButton{
 			{
 				{Text: streamBtnText, CallbackData: callbackPickStream},
 				{Text: chatBtnText, CallbackData: callbackPickChat},
@@ -85,69 +86,69 @@ func (c *Client) renderConnectedMenu(u *user.User) (string, *InlineKeyboardMarku
 	return text, kb
 }
 
-func (c *Client) sendStartScreen(chatID int64, u *user.User) error {
+func (h *Handler) sendStartScreen(chatID int64, u *user.User) error {
 	if u.GetCourseCookie == nil {
-		kb := &InlineKeyboardMarkup{InlineKeyboard: [][]InlineKeyboardButton{
+		kb := &botapi.InlineKeyboardMarkup{InlineKeyboard: [][]botapi.InlineKeyboardButton{
 			{{Text: "🔗 Подключить GetCourse", CallbackData: callbackConnectGetCourse}},
 		}}
-		return c.SendMessageWithKeyboardMode(chatID, welcomeText, ParseModeMarkdownV2, kb)
+		return h.client.SendMessageWithKeyboardMode(chatID, welcomeText, botapi.ParseModeMarkdownV2, kb)
 	}
 
-	return c.SendMessageWithKeyboardMode(chatID, startCommandText(u), ParseModeMarkdownV2, c.startKeyboard(u))
+	return h.client.SendMessageWithKeyboardMode(chatID, startCommandText(u), botapi.ParseModeMarkdownV2, h.startKeyboard(u))
 }
 
-func (c *Client) sendHelp(chatID int64) error {
-	kb := &InlineKeyboardMarkup{
-		InlineKeyboard: [][]InlineKeyboardButton{
+func (h *Handler) sendHelp(chatID int64) error {
+	kb := &botapi.InlineKeyboardMarkup{
+		InlineKeyboard: [][]botapi.InlineKeyboardButton{
 			{{Text: "⬅ Вернуться в меню", CallbackData: callbackBackToMenu}},
 		},
 	}
-	return c.SendMessageWithKeyboardMode(chatID, helpText, ParseModeMarkdownV2, kb)
+	return h.client.SendMessageWithKeyboardMode(chatID, helpText, botapi.ParseModeMarkdownV2, kb)
 }
 
-func (c *Client) sendMenu(ctx context.Context, chatID, telegramID int64) error {
-	u, err := c.userService.GetOrCreate(ctx, telegramID)
+func (h *Handler) sendMenu(ctx context.Context, chatID, telegramID int64) error {
+	u, err := h.userService.GetOrCreate(ctx, telegramID)
 	if err != nil {
 		return fmt.Errorf("get user: %w", err)
 	}
 
-	if err := c.sessionStore.ClearState(ctx, u.TelegramID); err != nil {
+	if err := h.sessionStore.ClearState(ctx, u.TelegramID); err != nil {
 		return fmt.Errorf("clear session state: %w", err)
 	}
 
 	if u.GetCourseCookie == nil {
-		kb := &InlineKeyboardMarkup{InlineKeyboard: [][]InlineKeyboardButton{
+		kb := &botapi.InlineKeyboardMarkup{InlineKeyboard: [][]botapi.InlineKeyboardButton{
 			{{Text: "🔗 Подключить GetCourse", CallbackData: callbackConnectGetCourse}},
 		}}
-		return c.SendMessageWithKeyboardMode(chatID, welcomeText, ParseModeMarkdownV2, kb)
+		return h.client.SendMessageWithKeyboardMode(chatID, welcomeText, botapi.ParseModeMarkdownV2, kb)
 	}
 
-	text, kb := c.renderConnectedMenu(u)
-	return c.SendMessageWithKeyboardMode(chatID, text, ParseModeMarkdownV2, kb)
+	text, kb := h.renderConnectedMenu(u)
+	return h.client.SendMessageWithKeyboardMode(chatID, text, botapi.ParseModeMarkdownV2, kb)
 }
 
-func (c *Client) startKeyboard(u *user.User) *InlineKeyboardMarkup {
-	menuBtn := InlineKeyboardButton{Text: "⬅ Вернуться в меню", CallbackData: callbackBackToMenu}
+func (h *Handler) startKeyboard(u *user.User) *botapi.InlineKeyboardMarkup {
+	menuBtn := botapi.InlineKeyboardButton{Text: "⬅ Вернуться в меню", CallbackData: callbackBackToMenu}
 
-	var setupBtn *InlineKeyboardButton
+	var setupBtn *botapi.InlineKeyboardButton
 
 	switch {
 	case u.GetCourseStreamID == nil:
-		setupBtn = &InlineKeyboardButton{Text: "📚 Выбрать тренинг", CallbackData: callbackPickStream}
+		setupBtn = &botapi.InlineKeyboardButton{Text: "📚 Выбрать тренинг", CallbackData: callbackPickStream}
 	case u.TargetChatID == nil:
-		setupBtn = &InlineKeyboardButton{Text: "💬 Выбрать чат", CallbackData: callbackPickChat}
+		setupBtn = &botapi.InlineKeyboardButton{Text: "💬 Выбрать чат", CallbackData: callbackPickChat}
 	}
 
-	rows := [][]InlineKeyboardButton{{menuBtn}}
+	rows := [][]botapi.InlineKeyboardButton{{menuBtn}}
 	if setupBtn != nil {
-		rows = [][]InlineKeyboardButton{{menuBtn, *setupBtn}}
+		rows = [][]botapi.InlineKeyboardButton{{menuBtn, *setupBtn}}
 	}
 
 	if u.GetCourseCookie != nil {
-		rows = append(rows, []InlineKeyboardButton{
+		rows = append(rows, []botapi.InlineKeyboardButton{
 			{Text: "🗑 Удалить мои данные", CallbackData: callbackDelete},
 		})
 	}
 
-	return &InlineKeyboardMarkup{InlineKeyboard: rows}
+	return &botapi.InlineKeyboardMarkup{InlineKeyboard: rows}
 }

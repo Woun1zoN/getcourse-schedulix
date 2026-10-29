@@ -1,4 +1,4 @@
-package telegram
+package botapi
 
 import (
 	"bytes"
@@ -34,7 +34,7 @@ func NewClient(token, chatID, getCourseBaseURL string, userService *user.Service
 	}
 }
 
-func (c *Client) answerCallbackQuery(id string) error {
+func (c *Client) AnswerCallbackQuery(id string) error {
 	data, _ := json.Marshal(map[string]string{"callback_query_id": id})
 	resp, err := c.client.Post(
 		fmt.Sprintf("https://api.telegram.org/bot%s/answerCallbackQuery", c.token),

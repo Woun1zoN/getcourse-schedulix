@@ -1,4 +1,9 @@
-package telegram
+package botapi
+
+const (
+	ParseModeMarkdown   = "Markdown"
+	ParseModeMarkdownV2 = "MarkdownV2"
+)
 
 type Update struct {
 	UpdateID      int            `json:"update_id"`

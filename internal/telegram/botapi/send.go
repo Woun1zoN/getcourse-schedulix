@@ -1,4 +1,4 @@
-package telegram
+package botapi
 
 import (
 	"bytes"
@@ -96,26 +96,6 @@ func (c *Client) SendPhoto(chatID int64, path string, caption string) error {
 	}
 
 	return nil
-}
-
-func (c *Client) SendNewMaterialNotice(documentName, documentURL, lessonID, lessonURL string, fileSize float64, checked, newDocuments, logChatID int64) error {
-	message := fmt.Sprintf(
-		"📚 Получен новый материал\n\n"+
-			"📄 [%s](%s)\n\n"+
-			"• ID урока: `%s`\n"+
-			"• URL: %s\n"+
-			"• Размер файла: %.1f КБ\n\n"+
-			"Проверено уроков: %d · Найдено: %d",
-		documentName, documentURL, lessonID, lessonURL, fileSize, checked, newDocuments,
-	)
-
-	kb := &InlineKeyboardMarkup{
-		InlineKeyboard: [][]InlineKeyboardButton{
-			{{Text: "⬅ Меню", CallbackData: callbackBackToMenu}},
-		},
-	}
-
-	return c.SendMessageWithKeyboardMode(logChatID, message, ParseModeMarkdown, kb)
 }
 
 func (c *Client) SendMessage(chatID int64, text string) error {

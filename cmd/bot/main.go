@@ -18,8 +18,9 @@ import (
 	"github.com/Woun1zoN/getcourse-schedulix/internal/database/migrations"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/getcourse"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/storage"
-	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram/botapi"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram/handler"
 )
 
 func main() {
@@ -88,12 +89,14 @@ func main() {
 	userService := user.NewService(userRepository, getCourseClient, cryptor)
 
 	// Telegram client initialization
-	telegramClient := telegram.NewClient(telegramToken, telegramChatID, getCourseBaseURL, userService, sessionStore)
+	telegramClient := botapi.NewClient(telegramToken, telegramChatID, getCourseBaseURL, userService, sessionStore)
+	telegramHandler := handler.New(telegramClient, userService, sessionStore, getCourseBaseURL, nil)
 
 	go func() {
-		if err := telegramClient.Run(ctx); err != nil {
-			log.Fatal(err)
-		}
+    	if err := telegramHandler.Run(ctx); err != nil {
+        	log.Printf("telegram polling: %v", err)
+        	stop()
+    	}
 	}()
 
 	// Run the application
@@ -104,6 +107,8 @@ func main() {
 		userService,
 		sessionStore,
 		5*time.Minute,
+		telegramHandler.SendReauthPrompt,
+		telegramHandler.SendNewMaterialNotice,
 	)
 
 	runner.Run(ctx)

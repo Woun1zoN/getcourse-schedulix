@@ -10,21 +10,41 @@ import (
 
 	"github.com/Woun1zoN/getcourse-schedulix/internal/getcourse"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/storage"
-	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram/botapi"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
 )
 
 type Runner struct {
 	baseClient     *getcourse.Client
 	redisClient    *redis.Client
-	telegramClient *telegram.Client
+	telegramClient *botapi.Client
 	userService    *user.Service
 	sessionStore   *storage.SessionStore
 	interval       time.Duration
+
 	notify         func(telegramID int64) error
+
+	notifyMaterial func(
+        documentName, documentURL, lessonID, lessonURL string,
+        fileSize float64,
+        checked, newDocuments, logChatID int64,
+    ) error
 }
 
-func NewRunner(baseClient *getcourse.Client, redisClient *redis.Client, telegramClient *telegram.Client, userService *user.Service, sessionStore *storage.SessionStore, interval time.Duration) *Runner {
+func NewRunner(
+	baseClient *getcourse.Client,
+	redisClient *redis.Client,
+	telegramClient *botapi.Client,
+	userService *user.Service,
+	sessionStore *storage.SessionStore,
+	interval time.Duration,
+	notify func(telegramID int64) error,
+	notifyMaterial func(
+		documentName, documentURL, lessonID, lessonURL string,
+		fileSize float64,
+		checked, newDocuments, logChatID int64,
+	) error,
+) *Runner {
 	return &Runner{
 		baseClient:     baseClient,
 		redisClient:    redisClient,
@@ -32,7 +52,8 @@ func NewRunner(baseClient *getcourse.Client, redisClient *redis.Client, telegram
 		userService:    userService,
 		sessionStore:   sessionStore,
 		interval:       interval,
-		notify:         telegramClient.SendReauthPrompt,
+		notify:         notify,
+		notifyMaterial: notifyMaterial,
 	}
 }
 
@@ -51,7 +72,7 @@ func (r *Runner) tick(ctx context.Context) {
 		client := r.baseClient.WithCookies(*u.GetCourseCookie)
 		state := storage.NewRedisState(r.redisClient, storage.HashesKey(u.ID))
 
-		err := InitApp(u.TelegramID, *u.TargetChatID, *u.GetCourseStreamID, client, state, r.telegramClient)
+		err := InitApp(u.TelegramID, *u.TargetChatID, *u.GetCourseStreamID, client, state, r.telegramClient, r.notifyMaterial)
 		if err == nil {
 			continue
 		}
