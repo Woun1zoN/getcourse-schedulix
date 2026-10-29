@@ -3,6 +3,7 @@ package telegram
 import (
 	"context"
 	"fmt"
+	"log"
 )
 
 func (c *Client) sendDeleteConfirmation(chatID int64) error {
@@ -28,6 +29,7 @@ func (c *Client) handleDeleteConfirm(ctx context.Context, cq *CallbackQuery) err
 		return fmt.Errorf("get user: %w", err)
 	}
 	if u == nil {
+		c.cleanupMessage(chatID, cq.Message.MessageID)
 		return c.SendMessage(chatID, "Нечего удалять, ваших данных нет 🥀")
 	}
 
@@ -47,5 +49,17 @@ func (c *Client) handleDeleteConfirm(ctx context.Context, cq *CallbackQuery) err
 		return fmt.Errorf("delete user: %w", err)
 	}
 
+	c.cleanupMessage(chatID, cq.Message.MessageID)
+
 	return c.SendMessage(chatID, "✅ Ваши данные удалены. Нажмите /start, чтобы начать заново.")
+}
+
+func (c *Client) cleanupMessage(chatID int64, messageID int) {
+	if messageID == 0 {
+		return
+	}
+
+	if err := c.DeleteMessage(chatID, messageID); err != nil {
+		log.Printf("telegram: cleanup message %d in chat %d: %v", messageID, chatID, err)
+	}
 }

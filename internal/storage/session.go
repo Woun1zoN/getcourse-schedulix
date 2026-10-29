@@ -37,20 +37,8 @@ func (s *SessionStore) ClearState(ctx context.Context, telegramID int64) error {
 	return s.rdb.Del(ctx, key(telegramID)).Err()
 }
 
-func key(telegramID int64) string {
-	return fmt.Sprintf("session:%d", telegramID)
-}
-
-func HashesKey(userID int64) string {
-	return fmt.Sprintf("docs:hashes:%d", userID)
-}
-
 func (s *SessionStore) DeleteHashes(ctx context.Context, userID int64) error {
 	return s.rdb.Del(ctx, HashesKey(userID)).Err()
-}
-
-func expiredKey(telegramID int64) string {
-	return fmt.Sprintf("cookie_expired_notified:%d", telegramID)
 }
 
 func (s *SessionStore) MarkExpiredNotified(ctx context.Context, telegramID int64) (bool, error) {
@@ -59,4 +47,32 @@ func (s *SessionStore) MarkExpiredNotified(ctx context.Context, telegramID int64
 
 func (s *SessionStore) ClearExpiredNotified(ctx context.Context, telegramID int64) error {
 	return s.rdb.Del(ctx, expiredKey(telegramID)).Err()
+}
+
+func (s *SessionStore) SetCookiePromptMessage(ctx context.Context, telegramID int64, messageID int) error {
+	return s.rdb.Set(ctx, cookiePromptKey(telegramID), messageID, awaitingCookieTTL).Err()
+}
+
+func (s *SessionStore) PopCookiePromptMessage(ctx context.Context, telegramID int64) (int, error) {
+	val, err := s.rdb.GetDel(ctx, cookiePromptKey(telegramID)).Int()
+	if err == redis.Nil {
+		return 0, nil
+	}
+	return val, err
+}
+
+func cookiePromptKey(telegramID int64) string {
+	return fmt.Sprintf("cookie_prompt:%d", telegramID)
+}
+
+func expiredKey(telegramID int64) string {
+	return fmt.Sprintf("cookie_expired_notified:%d", telegramID)
+}
+
+func HashesKey(userID int64) string {
+	return fmt.Sprintf("docs:hashes:%d", userID)
+}
+
+func key(telegramID int64) string {
+	return fmt.Sprintf("session:%d", telegramID)
 }

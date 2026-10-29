@@ -67,12 +67,22 @@ func (c *Client) handleStreamSelected(ctx context.Context, cq *CallbackQuery) er
 	}
 
 	if u.TargetChatID == nil {
-		return c.SendChatPicker(cq.From.ID, ChatPickerInitial)
+		if err := c.SendChatPicker(cq.From.ID, ChatPickerInitial); err != nil {
+			return err
+		}
+
+		c.cleanupMessage(cq.Message.Chat.ID, cq.Message.MessageID)
+		return nil
 	}
 
 	text, kb := c.renderConnectedMenu(u)
 
-	return c.SendMessageWithKeyboardMode(cq.From.ID, text, ParseModeMarkdownV2, kb)
+	if err := c.SendMessageWithKeyboardMode(cq.From.ID, text, ParseModeMarkdownV2, kb); err != nil {
+		return err
+	}
+
+	c.cleanupMessage(cq.Message.Chat.ID, cq.Message.MessageID)
+	return nil
 }
 
 func (c *Client) currentStream(u *user.User) *getcourse.Stream {

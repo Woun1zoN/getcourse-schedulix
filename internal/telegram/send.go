@@ -12,6 +12,9 @@ import (
 type response struct {
 	OK          bool   `json:"ok"`
 	Description string `json:"description"`
+	Result      struct {
+		MessageID int `json:"message_id"`
+	} `json:"result"`
 }
 
 func (c *Client) SendMessageWithKeyboard(chatID int64, text string, kb *InlineKeyboardMarkup) error {
@@ -210,6 +213,11 @@ func (c *Client) SendMessage(chatID int64, text string) error {
 }
 
 func (c *Client) SendMessageWithKeyboardMode(chatID int64, text, parseMode string, replyMarkup any) error {
+	_, err := c.SendMessageWithKeyboardModeID(chatID, text, parseMode, replyMarkup)
+	return err
+}
+
+func (c *Client) SendMessageWithKeyboardModeID(chatID int64, text, parseMode string, replyMarkup any) (int, error) {
 	payload := SendMessagePayload{
 		ChatID:             chatID,
 		Text:               text,
@@ -220,7 +228,7 @@ func (c *Client) SendMessageWithKeyboardMode(chatID int64, text, parseMode strin
 
 	data, err := json.Marshal(payload)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	resp, err := c.client.Post(
@@ -228,25 +236,62 @@ func (c *Client) SendMessageWithKeyboardMode(chatID int64, text, parseMode strin
 		"application/json", bytes.NewReader(data),
 	)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer resp.Body.Close()
 
 	var result response
-
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return fmt.Errorf("telegram: decode response: %w", err)
+		return 0, fmt.Errorf("telegram: decode response: %w", err)
 	}
-
 	if !result.OK {
-		return fmt.Errorf("telegram: sendMessage: %s", result.Description)
+		return 0, fmt.Errorf("telegram: sendMessage: %s", result.Description)
 	}
 
-	return nil
+	return result.Result.MessageID, nil
 }
 
 func (c *Client) SendMessageAndRemoveKeyboard(chatID int64, text string) error {
 	return c.SendMessageWithKeyboardMode(chatID, text, ParseModeMarkdownV2, &ReplyKeyboardRemove{
 		RemoveKeyboard: true,
 	})
+}
+
+func (c *Client) DeleteMessage(chatID int64, messageID int) error {
+	payload := struct {
+		ChatID    int64 `json:"chat_id"`
+		MessageID int   `json:"message_id"`
+	}{
+		ChatID:    chatID,
+		MessageID: messageID,
+	}
+
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.client.Post(
+		fmt.Sprintf("https://api.telegram.org/bot%s/deleteMessage", c.token),
+		"application/json", bytes.NewReader(data),
+	)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		OK          bool   `json:"ok"`
+		Description string `json:"description"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return fmt.Errorf("telegram: decode response: %w", err)
+	}
+
+	if !result.OK {
+		return fmt.Errorf("telegram: deleteMessage: %s", result.Description)
+	}
+
+	return nil
 }

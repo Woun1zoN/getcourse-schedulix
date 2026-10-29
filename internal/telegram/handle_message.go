@@ -3,6 +3,7 @@ package telegram
 import (
 	"context"
 	"fmt"
+	"log"
 	"log/slog"
 	"strings"
 
@@ -123,6 +124,8 @@ func (c *Client) handleMessage(ctx context.Context, message *Message) error {
 func (c *Client) handleCookieInput(ctx context.Context, u *user.User, message *Message) error {
 	cookie := strings.TrimSpace(message.Text)
 
+	c.cleanupMessage(message.Chat.ID, message.MessageID)
+
 	client := getcourse.NewClient(c.getCourseBaseURL, cookie)
 
 	if err := client.ValidateCookie(); err != nil {
@@ -142,6 +145,12 @@ func (c *Client) handleCookieInput(ctx context.Context, u *user.User, message *M
 
 	if err := c.sessionStore.ClearState(ctx, u.TelegramID); err != nil {
 		return fmt.Errorf("clear session state: %w", err)
+	}
+
+	if promptID, err := c.sessionStore.PopCookiePromptMessage(ctx, u.TelegramID); err != nil {
+		log.Printf("telegram: pop cookie prompt message: %v", err)
+	} else if promptID != 0 {
+		c.cleanupMessage(message.Chat.ID, promptID)
 	}
 
 	streams, err := client.GetStreams()

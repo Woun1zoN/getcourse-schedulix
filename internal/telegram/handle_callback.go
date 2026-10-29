@@ -3,6 +3,7 @@ package telegram
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -33,7 +34,18 @@ func (c *Client) handleCallbackQuery(ctx context.Context, cq *CallbackQuery) err
 		if err := c.sessionStore.SetAwaitingCookie(ctx, cq.From.ID); err != nil {
 			return err
 		}
-		return c.SendMessageWithKeyboardMode(cq.Message.Chat.ID, connectGetCourseMessage, ParseModeMarkdownV2, cancelKeyboard())
+		msgID, err := c.SendMessageWithKeyboardModeID(
+			cq.Message.Chat.ID, connectGetCourseMessage, ParseModeMarkdownV2, cancelKeyboard(),
+		)
+		if err != nil {
+			return err
+		}
+
+		if err := c.sessionStore.SetCookiePromptMessage(ctx, cq.From.ID, msgID); err != nil {
+			log.Printf("telegram: save cookie prompt message: %v", err)
+		}
+
+		return nil
 
 	case cq.Data == callbackCancel:
 		return c.handleCancel(ctx, cq)
@@ -68,7 +80,13 @@ func (c *Client) handleCancel(ctx context.Context, cq *CallbackQuery) error {
 
 	if u.GetCourseCookie != nil {
 		text, kb := c.renderConnectedMenu(u)
-		return c.SendMessageWithKeyboardMode(chatID, text, ParseModeMarkdownV2, kb)
+
+		if err := c.SendMessageWithKeyboardMode(chatID, text, ParseModeMarkdownV2, kb); err != nil {
+			return err
+		}
+
+		c.cleanupMessage(chatID, cq.Message.MessageID)
+		return nil
 	}
 
 	kb := &InlineKeyboardMarkup{
@@ -77,7 +95,12 @@ func (c *Client) handleCancel(ctx context.Context, cq *CallbackQuery) error {
 		},
 	}
 
-	return c.SendMessageWithKeyboardMode(chatID, welcomeText, ParseModeMarkdownV2, kb)
+	if err := c.SendMessageWithKeyboardMode(chatID, welcomeText, ParseModeMarkdownV2, kb); err != nil {
+		return err
+	}
+
+	c.cleanupMessage(chatID, cq.Message.MessageID)
+	return nil
 }
 
 func (c *Client) handleSkipStream(ctx context.Context, cq *CallbackQuery) error {
