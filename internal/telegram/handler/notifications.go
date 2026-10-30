@@ -35,3 +35,18 @@ func (h *Handler) SendNewMaterialNotice(
 		kb,
 	)
 }
+
+func (h *Handler) SendMissingStreamPrompt(telegramID int64) error {
+	kb := &botapi.InlineKeyboardMarkup{
+		InlineKeyboard: [][]botapi.InlineKeyboardButton{
+			{{Text: "📚 Выбрать тренинг", CallbackData: callbackPickStream}},
+		},
+	}
+
+	return h.client.SendMessageWithKeyboardMode(
+		telegramID,
+		"*⚠️ Выбранный тренинг больше недоступен*\\. Новые материалы приходить не будут, пока вы не выберете другой\\.",
+		botapi.ParseModeMarkdownV2,
+		kb,
+	)
+}

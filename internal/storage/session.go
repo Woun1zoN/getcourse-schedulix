@@ -61,6 +61,14 @@ func (s *SessionStore) PopCookiePromptMessage(ctx context.Context, telegramID in
 	return val, err
 }
 
+func (s *SessionStore) MarkStreamMissingNotified(ctx context.Context, telegramID, streamID int64) (bool, error) {
+	return s.rdb.SetNX(ctx, staleStreamKey(telegramID, streamID), "1", 0).Result()
+}
+
+func (s *SessionStore) ClearStreamMissingNotified(ctx context.Context, telegramID, streamID int64) error {
+	return s.rdb.Del(ctx, staleStreamKey(telegramID, streamID)).Err()
+}
+
 func cookiePromptKey(telegramID int64) string {
 	return fmt.Sprintf("cookie_prompt:%d", telegramID)
 }
@@ -75,4 +83,8 @@ func HashesKey(userID int64) string {
 
 func key(telegramID int64) string {
 	return fmt.Sprintf("session:%d", telegramID)
+}
+
+func staleStreamKey(telegramID, streamID int64) string {
+	return fmt.Sprintf("stream_missing_notified:%d:%d", telegramID, streamID)
 }

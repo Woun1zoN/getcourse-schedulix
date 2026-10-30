@@ -26,6 +26,11 @@ func NewClient(baseURL, cookies string) *Client {
 	}
 }
 
+var (
+	ErrStreamNotFound = errors.New("getcourse: stream not found")
+	errNotFound       = errors.New("getcourse: not found")
+)
+
 func (c *Client) get(ctx context.Context, url string) ([]byte, error) {
 	var lastErr error
 
@@ -60,8 +65,13 @@ func (c *Client) get(ctx context.Context, url string) ([]byte, error) {
 			return nil, err
 		}
 
-		if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode != http.StatusOK { // <- replace this block
 			resp.Body.Close()
+
+			if resp.StatusCode == http.StatusNotFound {
+				return nil, errNotFound
+			}
+
 			return nil, fmt.Errorf("getcourse: status %d", resp.StatusCode)
 		}
 

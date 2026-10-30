@@ -111,6 +111,7 @@ func main() {
 		sessionStore,
 		5*time.Minute,
 		telegramHandler.SendReauthPrompt,
+		telegramHandler.SendMissingStreamPrompt,
 		telegramHandler.SendNewMaterialNotice,
 	)
 

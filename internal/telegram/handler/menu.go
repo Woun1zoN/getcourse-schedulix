@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram/botapi"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
@@ -33,13 +34,27 @@ func (h *Handler) renderConnectedMenu(ctx context.Context, u *user.User) (string
 		text += "\n\n✅ GetCourse подключён, новые материалы будут приходить автоматически\\."
 	}
 
-	if s := h.currentStream(ctx, u); s != nil {
-		text += "\n\n• Выбранный тренинг:\n📚 *" + escapeMarkdownV2(s.Name) + "*"
-		if info := s.Info(); info != "" {
-			text += "\n" + escapeMarkdownV2(info)
+	text += "\n\n• Выбранный тренинг:\n"
+
+	if u.GetCourseStreamID == nil {
+		text += "➖ Не выбран"
+	} else {
+		s, err := h.currentStream(ctx, u)
+
+		switch {
+		case err != nil:
+			log.Printf("telegram: current stream for user %d: %v", u.TelegramID, err)
+			text += fmt.Sprintf("⚠️ Не удалось загрузить название \\(ID %d\\)", *u.GetCourseStreamID)
+
+		case s == nil:
+			text += fmt.Sprintf("⚠️ Тренинг \\(ID %d\\) больше не найден\\. Выберите другой\\.", *u.GetCourseStreamID)
+
+		default:
+			text += "📚 *" + escapeMarkdownV2(s.Name) + "*"
+			if info := s.Info(); info != "" {
+				text += "\n" + escapeMarkdownV2(info)
+			}
 		}
-	} else if u.GetCourseStreamID == nil {
-		text += "\n\n• Выбранный тренинг:\n➖ Не выбран"
 	}
 
 	chatName := "*💬 Личные сообщения*"

@@ -1,11 +1,11 @@
 package getcourse
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
-	"context"
 )
 
 var ErrCookieExpired = errors.New("getcourse: cookie invalid or expired")

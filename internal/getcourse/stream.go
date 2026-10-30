@@ -2,6 +2,7 @@ package getcourse
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 
@@ -29,6 +30,9 @@ func (s Stream) Info() string {
 func (c *Client) GetLessonIDs(ctx context.Context, streamID int64) ([]string, error) {
 	body, err := c.get(ctx, c.baseURL+"/teach/control/stream/view/id/"+strconv.FormatInt(streamID, 10))
 	if err != nil {
+		if errors.Is(err, errNotFound) {
+			return nil, ErrStreamNotFound
+		}
 		return nil, err
 	}
 

@@ -86,21 +86,21 @@ func (h *Handler) handleStreamSelected(ctx context.Context, cq *botapi.CallbackQ
 	return nil
 }
 
-func (h *Handler) currentStream(ctx context.Context, u *user.User) *getcourse.Stream {
+func (h *Handler) currentStream(ctx context.Context, u *user.User) (*getcourse.Stream, error) {
 	if u.GetCourseCookie == nil || u.GetCourseStreamID == nil {
-		return nil
+		return nil, nil
 	}
 
 	client := getcourse.NewClient(h.getCourseBaseURL, *u.GetCourseCookie)
 	streams, err := client.GetStreams(ctx)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("get streams: %w", err)
 	}
 
 	for _, s := range streams {
 		if s.ID == *u.GetCourseStreamID {
-			return &s
+			return &s, nil
 		}
 	}
-	return nil
+	return nil, nil
 }
