@@ -129,7 +129,7 @@ func (h *Handler) handleCookieInput(ctx context.Context, u *user.User, message *
 
 	client := getcourse.NewClient(h.getCourseBaseURL, cookie)
 
-	if err := client.ValidateCookie(); err != nil {
+	if err := client.ValidateCookie(ctx); err != nil {
 		return h.client.SendMessage(
 			message.Chat.ID,
 			"Не удалось подтвердить cookie. Убедитесь, что вы вошли в аккаунт и скопировали значение полностью.",
@@ -154,7 +154,7 @@ func (h *Handler) handleCookieInput(ctx context.Context, u *user.User, message *
 		h.cleanupMessage(message.Chat.ID, promptID)
 	}
 
-	streams, err := client.GetStreams()
+	streams, err := client.GetStreams(ctx)
 	if err != nil {
 		return h.client.SendMessage(message.Chat.ID, "Не удалось получить список тренингов, попробуйте позже.")
 	}
@@ -191,7 +191,7 @@ func (h *Handler) handlePickStream(ctx context.Context, cq *botapi.CallbackQuery
 
 	client := getcourse.NewClient(h.getCourseBaseURL, *u.GetCourseCookie)
 
-	streams, err := client.GetStreams()
+	streams, err := client.GetStreams(ctx)
 	if err != nil {
 		return h.client.SendMessage(cq.From.ID, "Не удалось получить список тренингов, попробуйте позже.")
 	}

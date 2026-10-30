@@ -76,7 +76,7 @@ func (h *Handler) handleStreamSelected(ctx context.Context, cq *botapi.CallbackQ
 		return nil
 	}
 
-	text, kb := h.renderConnectedMenu(u)
+	text, kb := h.renderConnectedMenu(ctx, u)
 
 	if err := h.client.SendMessageWithKeyboardMode(cq.From.ID, text, botapi.ParseModeMarkdownV2, kb); err != nil {
 		return err
@@ -86,13 +86,13 @@ func (h *Handler) handleStreamSelected(ctx context.Context, cq *botapi.CallbackQ
 	return nil
 }
 
-func (h *Handler) currentStream(u *user.User) *getcourse.Stream {
+func (h *Handler) currentStream(ctx context.Context, u *user.User) *getcourse.Stream {
 	if u.GetCourseCookie == nil || u.GetCourseStreamID == nil {
 		return nil
 	}
 
 	client := getcourse.NewClient(h.getCourseBaseURL, *u.GetCourseCookie)
-	streams, err := client.GetStreams()
+	streams, err := client.GetStreams(ctx)
 	if err != nil {
 		return nil
 	}

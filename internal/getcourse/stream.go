@@ -1,6 +1,7 @@
 package getcourse
 
 import (
+	"context"
 	"strconv"
 	"strings"
 
@@ -25,8 +26,8 @@ func (s Stream) Info() string {
 	return strings.Join(parts, " · ")
 }
 
-func (c *Client) GetLessonIDs(streamID int64) ([]string, error) {
-	body, err := c.get(c.baseURL + "/teach/control/stream/view/id/" + strconv.FormatInt(streamID, 10))
+func (c *Client) GetLessonIDs(ctx context.Context, streamID int64) ([]string, error) {
+	body, err := c.get(ctx, c.baseURL+"/teach/control/stream/view/id/"+strconv.FormatInt(streamID, 10))
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +78,8 @@ func (c *Client) GetLessonIDs(streamID int64) ([]string, error) {
 	return result, nil
 }
 
-func (c *Client) GetStreams() ([]Stream, error) {
-	body, err := c.get(c.baseURL + "/teach/control")
+func (c *Client) GetStreams(ctx context.Context) ([]Stream, error) {
+	body, err := c.get(ctx, c.baseURL+"/teach/control")
 	if err != nil {
 		return nil, err
 	}

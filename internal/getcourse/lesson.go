@@ -1,6 +1,7 @@
 package getcourse
 
 import (
+	"context"
 	"strings"
 
 	"golang.org/x/net/html"
@@ -12,10 +13,10 @@ type Document struct {
 	URL  string
 }
 
-func (c *Client) GetLessonDocuments(id string) ([]Document, error) {
+func (c *Client) GetLessonDocuments(ctx context.Context, id string) ([]Document, error) {
 	url := c.baseURL + "/pl/teach/control/lesson/view?id=" + id + "&editMode=0"
 
-	body, err := c.get(url)
+	body, err := c.get(ctx, url)
 	if err != nil {
 		return nil, err
 	}

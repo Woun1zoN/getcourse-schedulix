@@ -47,7 +47,7 @@ func (s *Service) GetOrCreate(ctx context.Context, telegramID int64) (*User, err
 func (s *Service) ConnectGetCourse(ctx context.Context, telegramID int64, cookie string) error {
 	client := s.getCourseClient.WithCookies(cookie)
 
-	if err := client.ValidateCookie(); err != nil {
+	if err := client.ValidateCookie(ctx); err != nil {
 		return fmt.Errorf("validate getcourse cookie: %w", err)
 	}
 

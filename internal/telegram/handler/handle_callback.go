@@ -81,7 +81,7 @@ func (h *Handler) handleCancel(ctx context.Context, cq *botapi.CallbackQuery) er
 	chatID := cq.Message.Chat.ID
 
 	if u.GetCourseCookie != nil {
-		text, kb := h.renderConnectedMenu(u)
+		text, kb := h.renderConnectedMenu(ctx, u)
 
 		if err := h.client.SendMessageWithKeyboardMode(chatID, text, botapi.ParseModeMarkdownV2, kb); err != nil {
 			return err
@@ -119,7 +119,7 @@ func (h *Handler) handleSkipStream(ctx context.Context, cq *botapi.CallbackQuery
 		return h.sendChatPicker(cq.From.ID, ChatPickerInitial)
 	}
 
-	text, kb := h.renderConnectedMenu(u)
+	text, kb := h.renderConnectedMenu(ctx, u)
 	return h.client.SendMessageWithKeyboardMode(cq.From.ID, text, botapi.ParseModeMarkdownV2, kb)
 }
 

@@ -14,12 +14,12 @@ func (h *Handler) connectedMenu(ctx context.Context, telegramID int64) (string, 
 		return "", nil, fmt.Errorf("get user: %w", err)
 	}
 
-	text, kb := h.renderConnectedMenu(u)
+	text, kb := h.renderConnectedMenu(ctx, u)
 
 	return text, kb, nil
 }
 
-func (h *Handler) renderConnectedMenu(u *user.User) (string, *botapi.InlineKeyboardMarkup) {
+func (h *Handler) renderConnectedMenu(ctx context.Context, u *user.User) (string, *botapi.InlineKeyboardMarkup) {
 	var text string
 
 	switch {
@@ -33,7 +33,7 @@ func (h *Handler) renderConnectedMenu(u *user.User) (string, *botapi.InlineKeybo
 		text += "\n\n✅ GetCourse подключён, новые материалы будут приходить автоматически\\."
 	}
 
-	if s := h.currentStream(u); s != nil {
+	if s := h.currentStream(ctx, u); s != nil {
 		text += "\n\n• Выбранный тренинг:\n📚 *" + escapeMarkdownV2(s.Name) + "*"
 		if info := s.Info(); info != "" {
 			text += "\n" + escapeMarkdownV2(info)
@@ -123,7 +123,7 @@ func (h *Handler) sendMenu(ctx context.Context, chatID, telegramID int64) error 
 		return h.client.SendMessageWithKeyboardMode(chatID, welcomeText, botapi.ParseModeMarkdownV2, kb)
 	}
 
-	text, kb := h.renderConnectedMenu(u)
+	text, kb := h.renderConnectedMenu(ctx, u)
 	return h.client.SendMessageWithKeyboardMode(chatID, text, botapi.ParseModeMarkdownV2, kb)
 }
 

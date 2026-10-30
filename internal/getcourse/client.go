@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"time"
 )
@@ -25,15 +26,19 @@ func NewClient(baseURL, cookies string) *Client {
 	}
 }
 
-func (c *Client) get(url string) ([]byte, error) {
+func (c *Client) get(ctx context.Context, url string) ([]byte, error) {
 	var lastErr error
 
 	for attempt := 0; attempt < 4; attempt++ {
 		if attempt > 0 {
-			time.Sleep(time.Duration(attempt) * 2 * time.Second)
+			select {
+			case <-time.After(time.Duration(attempt) * 2 * time.Second):
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
 		}
 
-		req, err := http.NewRequest(http.MethodGet, url, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -42,9 +47,13 @@ func (c *Client) get(url string) ([]byte, error) {
 
 		resp, err := c.client.Do(req)
 		if err != nil {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+
 			lastErr = err
 
-			if errors.Is(err, context.DeadlineExceeded) {
+			if isTimeout(err) {
 				continue
 			}
 
@@ -65,8 +74,8 @@ func (c *Client) get(url string) ([]byte, error) {
 	return nil, fmt.Errorf("getcourse: timed out after retries: %w", lastErr)
 }
 
-func (c *Client) DownloadDocument(document Document) ([]byte, error) {
-	return c.get(document.URL)
+func (c *Client) DownloadDocument(ctx context.Context, document Document) ([]byte, error) {
+	return c.get(ctx, document.URL)
 }
 
 func (c *Client) WithCookies(cookies string) *Client {
@@ -75,4 +84,9 @@ func (c *Client) WithCookies(cookies string) *Client {
 		cookies: cookies,
 		client:  c.client,
 	}
+}
+
+func isTimeout(err error) bool {
+	var ne net.Error
+	return errors.Is(err, context.DeadlineExceeded) || (errors.As(err, &ne) && ne.Timeout())
 }

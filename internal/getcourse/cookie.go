@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"context"
 )
 
 var ErrCookieExpired = errors.New("getcourse: cookie invalid or expired")
 
-func (c *Client) ValidateCookie() error {
-	req, err := http.NewRequest(
+func (c *Client) ValidateCookie(ctx context.Context) error {
+	req, err := http.NewRequestWithContext(
+		ctx,
 		http.MethodGet,
 		c.baseURL+"/teach/control/",
 		nil,
