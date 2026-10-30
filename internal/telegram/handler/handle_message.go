@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/Woun1zoN/getcourse-schedulix/internal/getcourse"
-	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram/botapi"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
 )
 
 func (h *Handler) handleMessage(ctx context.Context, message *botapi.Message) error {
@@ -176,7 +176,7 @@ func (h *Handler) handleCookieInput(ctx context.Context, u *user.User, message *
 		return err
 	}
 
-	return h.SendStreamPicker(message.Chat.ID, streams)
+	return h.sendStreamPicker(message.Chat.ID, streams)
 }
 
 func (h *Handler) handlePickStream(ctx context.Context, cq *botapi.CallbackQuery) error {
@@ -196,7 +196,7 @@ func (h *Handler) handlePickStream(ctx context.Context, cq *botapi.CallbackQuery
 		return h.client.SendMessage(cq.From.ID, "Не удалось получить список тренингов, попробуйте позже.")
 	}
 
-	return h.SendStreamPicker(cq.From.ID, streams)
+	return h.sendStreamPicker(cq.From.ID, streams)
 }
 
 func (h *Handler) handleChatShared(ctx context.Context, message *botapi.Message) error {
@@ -217,11 +217,6 @@ func (h *Handler) handleChatShared(ctx context.Context, message *botapi.Message)
 		shared.Title,
 	); err != nil {
 		return fmt.Errorf("select target chat: %w", err)
-	}
-
-	title := shared.Title
-	if title == "" {
-		title = fmt.Sprintf("%d", shared.ChatID)
 	}
 
 	text, kb, err := h.connectedMenu(ctx, message.From.ID)

@@ -3,29 +3,29 @@ package handler
 import (
 	"context"
 	"log"
-	"time"
 	"log/slog"
+	"time"
 
+	"github.com/Woun1zoN/getcourse-schedulix/internal/storage"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram/botapi"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
-	"github.com/Woun1zoN/getcourse-schedulix/internal/storage"
 )
 
 type Handler struct {
-    client *botapi.Client
-	userService *user.Service
-	sessionStore *storage.SessionStore
+	client           *botapi.Client
+	userService      *user.Service
+	sessionStore     *storage.SessionStore
 	getCourseBaseURL string
-	logger *slog.Logger
+	logger           *slog.Logger
 }
 
 func New(client *botapi.Client, userService *user.Service, sessionStore *storage.SessionStore, getCourseBaseURL string, logger *slog.Logger) *Handler {
 	return &Handler{
-		client:      client,
-		userService: userService,
-		sessionStore: sessionStore,
+		client:           client,
+		userService:      userService,
+		sessionStore:     sessionStore,
 		getCourseBaseURL: getCourseBaseURL,
-		logger:       logger,
+		logger:           logger,
 	}
 }
 

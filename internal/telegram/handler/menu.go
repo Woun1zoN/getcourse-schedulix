@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram/botapi"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
 )
 
 func (h *Handler) connectedMenu(ctx context.Context, telegramID int64) (string, *botapi.InlineKeyboardMarkup, error) {

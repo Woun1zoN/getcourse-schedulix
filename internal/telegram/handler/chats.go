@@ -16,7 +16,7 @@ const (
 	chatRequestChannel = 2
 )
 
-func (h *Handler) SendChatPicker(chatID int64, mode ChatPickerMode) error {
+func (h *Handler) sendChatPicker(chatID int64, mode ChatPickerMode) error {
 	skipButtonText := "➡ Пропустить"
 
 	if mode == ChatPickerChange {

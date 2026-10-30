@@ -17,10 +17,11 @@ import (
 	"github.com/Woun1zoN/getcourse-schedulix/internal/database"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/database/migrations"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/getcourse"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/logging"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/storage"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram/botapi"
-	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
 	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram/handler"
+	"github.com/Woun1zoN/getcourse-schedulix/internal/user"
 )
 
 func main() {
@@ -90,13 +91,13 @@ func main() {
 
 	// Telegram client initialization
 	telegramClient := botapi.NewClient(telegramToken, telegramChatID, getCourseBaseURL, userService, sessionStore)
-	telegramHandler := handler.New(telegramClient, userService, sessionStore, getCourseBaseURL, nil)
+	telegramHandler := handler.New(telegramClient, userService, sessionStore, getCourseBaseURL, logging.NewLogger())
 
 	go func() {
-    	if err := telegramHandler.Run(ctx); err != nil {
-        	log.Printf("telegram polling: %v", err)
-        	stop()
-    	}
+		if err := telegramHandler.Run(ctx); err != nil {
+			log.Printf("telegram polling: %v", err)
+			stop()
+		}
 	}()
 
 	// Run the application

@@ -30,7 +30,7 @@ func (h *Handler) handleCallbackQuery(ctx context.Context, cq *botapi.CallbackQu
 		return h.handlePickStream(ctx, cq)
 
 	case cq.Data == callbackPickChat:
-		return h.SendChatPicker(cq.Message.Chat.ID, ChatPickerChange)
+		return h.sendChatPicker(cq.Message.Chat.ID, ChatPickerChange)
 
 	case cq.Data == callbackConnectGetCourse:
 		if err := h.sessionStore.SetAwaitingCookie(ctx, cq.From.ID); err != nil {
@@ -116,7 +116,7 @@ func (h *Handler) handleSkipStream(ctx context.Context, cq *botapi.CallbackQuery
 	}
 
 	if u.TargetChatID == nil {
-		return h.SendChatPicker(cq.From.ID, ChatPickerInitial)
+		return h.sendChatPicker(cq.From.ID, ChatPickerInitial)
 	}
 
 	text, kb := h.renderConnectedMenu(u)

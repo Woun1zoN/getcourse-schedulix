@@ -14,7 +14,7 @@ import (
 const callbackStreamPrefix = "stream:"
 const callbackSkipStream = "skip_stream"
 
-func (h *Handler) SendStreamPicker(chatID int64, streams []getcourse.Stream) error {
+func (h *Handler) sendStreamPicker(chatID int64, streams []getcourse.Stream) error {
 	if len(streams) == 0 {
 		return h.client.SendMessage(chatID, "На вашем аккаунте нет ниодного тренинга.")
 	}
@@ -68,7 +68,7 @@ func (h *Handler) handleStreamSelected(ctx context.Context, cq *botapi.CallbackQ
 	}
 
 	if u.TargetChatID == nil {
-		if err := h.SendChatPicker(cq.From.ID, ChatPickerInitial); err != nil {
+		if err := h.sendChatPicker(cq.From.ID, ChatPickerInitial); err != nil {
 			return err
 		}
 

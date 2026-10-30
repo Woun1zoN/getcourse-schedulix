@@ -22,13 +22,13 @@ type Runner struct {
 	sessionStore   *storage.SessionStore
 	interval       time.Duration
 
-	notify         func(telegramID int64) error
+	notify func(telegramID int64) error
 
 	notifyMaterial func(
-        documentName, documentURL, lessonID, lessonURL string,
-        fileSize float64,
-        checked, newDocuments, logChatID int64,
-    ) error
+		documentName, documentURL, lessonID, lessonURL string,
+		fileSize float64,
+		checked, newDocuments, logChatID int64,
+	) error
 }
 
 func NewRunner(
