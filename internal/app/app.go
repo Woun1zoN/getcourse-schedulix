@@ -16,17 +16,17 @@ import (
 	"github.com/Woun1zoN/getcourse-schedulix/internal/telegram/botapi"
 )
 
-func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, state *storage.RedisState, telegramClient *botapi.Client, notifyMaterial func(documentName, documentURL, lessonID, lessonURL string, fileSize float64, checked, newDocuments, logChatID int64) error) error {
-	if err := client.ValidateCookie(); err != nil {
+func InitApp(ctx context.Context, chatID, targetChatID, streamID int64, client *getcourse.Client, state *storage.RedisState, telegramClient *botapi.Client, notifyMaterial func(documentName, documentURL, lessonID, lessonURL string, fileSize float64, checked, newDocuments, logChatID int64) error) error {
+	if err := client.ValidateCookie(ctx); err != nil {
 		return fmt.Errorf("validate cookie: %w", err)
 	}
 
-	lessonIDs, err := client.GetLessonIDs(streamID)
+	lessonIDs, err := client.GetLessonIDs(ctx, streamID)
 	if err != nil {
 		return err
 	}
 
-	baselined, err := state.IsBaselined(context.Background(), streamID)
+	baselined, err := state.IsBaselined(ctx, streamID)
 	if err != nil {
 		return fmt.Errorf("check baseline: %w", err)
 	}
@@ -43,7 +43,7 @@ func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, sta
 
 	logs := make([]string, len(lessonIDs))
 
-	g, ctx := errgroup.WithContext(context.Background())
+	g, gctx := errgroup.WithContext(ctx)
 	g.SetLimit(4)
 
 	for i, id := range lessonIDs {
@@ -60,7 +60,7 @@ func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, sta
 				id +
 				"&editMode=0"
 
-			documents, err := client.GetLessonDocuments(id)
+			documents, err := client.GetLessonDocuments(gctx, id)
 			if err != nil {
 				failed.Add(1)
 				printf("  Lesson ID: %s\n", id)
@@ -75,7 +75,7 @@ func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, sta
 				name := strings.TrimPrefix(document.Name, "Занятия на ")
 				name = strings.TrimSuffix(name, ".doc")
 
-				data, err := client.DownloadDocument(document)
+				data, err := client.DownloadDocument(gctx, document)
 				if err != nil {
 					failed.Add(1)
 					printf("  Lesson ID: %s\n", document.ID)
@@ -88,7 +88,7 @@ func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, sta
 				fileSize := float64(len(data)) / 1024
 
 				if baselineMode {
-					if err := state.MarkProcessed(ctx, document.URL, data); err != nil {
+					if err := state.MarkProcessed(gctx, document.URL, data); err != nil {
 						failed.Add(1)
 						printf("  ERROR Redis MarkProcessed (baseline): %v\n\n", err)
 						continue
@@ -97,7 +97,7 @@ func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, sta
 					continue
 				}
 
-				changed, err := state.HasChanged(ctx, document.URL, data)
+				changed, err := state.HasChanged(gctx, document.URL, data)
 				if err != nil {
 					printf("  Lesson ID: %s\n", document.ID)
 					printf("  Document: %s\n", name)
@@ -122,7 +122,7 @@ func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, sta
 				printf("  URL: %s\n", document.URL)
 				printf("  Downloaded: %d bytes\n", len(data))
 
-				jpgPath, err := converter.ConvertToJPG(data, document.Name)
+				jpgPath, err := converter.ConvertToJPG(gctx, data, document.Name)
 				if err != nil {
 					printf("  ERROR Convert: %v\n\n", err)
 					continue
@@ -158,7 +158,7 @@ func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, sta
 					log.Printf("telegram log %s: %v", document.Name, err)
 				}
 
-				if err := state.MarkProcessed(ctx, document.URL, data); err != nil {
+				if err := state.MarkProcessed(gctx, document.URL, data); err != nil {
 					printf("  ERROR Redis MarkProcessed: %v\n\n", err)
 				}
 
@@ -177,7 +177,7 @@ func InitApp(chatID, targetChatID, streamID int64, client *getcourse.Client, sta
 
 	if baselineMode {
 		if failed.Load() == 0 {
-			if err := state.MarkBaselined(context.Background(), streamID); err != nil {
+			if err := state.MarkBaselined(ctx, streamID); err != nil {
 				return fmt.Errorf("mark baselined: %w", err)
 			}
 			fmt.Println("Baseline completed, nothing sent")

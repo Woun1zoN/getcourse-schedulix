@@ -1,14 +1,19 @@
 package converter
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
-func ConvertToJPG(data []byte, filename string) (string, error) {
+func ConvertToJPG(ctx context.Context, data []byte, filename string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
 	tmpDir, err := os.MkdirTemp("", "schedule-bot-*")
 	if err != nil {
 		return "", err
@@ -22,7 +27,8 @@ func ConvertToJPG(data []byte, filename string) (string, error) {
 	}
 
 	// DOC → PDF
-	cmd := exec.Command(
+	cmd := exec.CommandContext(
+		ctx,
 		"libreoffice",
 		"-env:UserInstallation=file://"+filepath.Join(tmpDir, "lo-profile"),
 		"--headless",
@@ -41,7 +47,8 @@ func ConvertToJPG(data []byte, filename string) (string, error) {
 	// PDF → JPG
 	jpgPrefix := filepath.Join(tmpDir, "schedule")
 
-	cmd = exec.Command(
+	cmd = exec.CommandContext(
+		ctx,
 		"pdftoppm",
 		"-jpeg",
 		"-r", "150",

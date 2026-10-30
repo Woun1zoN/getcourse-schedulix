@@ -65,6 +65,10 @@ func (r *Runner) tick(ctx context.Context) {
 	}
 
 	for _, u := range users {
+		if ctx.Err() != nil {
+			return
+		}
+
 		if u.GetCourseStreamID == nil || u.TargetChatID == nil {
 			continue
 		}
@@ -72,7 +76,7 @@ func (r *Runner) tick(ctx context.Context) {
 		client := r.baseClient.WithCookies(*u.GetCourseCookie)
 		state := storage.NewRedisState(r.redisClient, storage.HashesKey(u.ID))
 
-		err := InitApp(u.TelegramID, *u.TargetChatID, *u.GetCourseStreamID, client, state, r.telegramClient, r.notifyMaterial)
+		err := InitApp(ctx, u.TelegramID, *u.TargetChatID, *u.GetCourseStreamID, client, state, r.telegramClient, r.notifyMaterial)
 		if err == nil {
 			continue
 		}
