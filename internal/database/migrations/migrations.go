@@ -11,8 +11,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func Run(dbURL, migrationsPath string) error {
-	if err := WaitForDB(dbURL, 30*time.Second); err != nil {
+func Run(ctx context.Context, dbURL, migrationsPath string) error {
+	if err := WaitForDB(ctx, dbURL, 30*time.Second); err != nil {
 		return fmt.Errorf("database not ready: %w", err)
 	}
 
@@ -29,11 +29,11 @@ func Run(dbURL, migrationsPath string) error {
 	return nil
 }
 
-func WaitForDB(dbURL string, timeout time.Duration) error {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+func WaitForDB(ctx context.Context, dbURL string, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	pool, err := pgxpool.New(context.Background(), dbURL)
+	pool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
 		return fmt.Errorf("create pool: %w", err)
 	}
@@ -47,9 +47,9 @@ func WaitForDB(dbURL string, timeout time.Duration) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("timeout waiting for db: %w", lastErr)
+			return fmt.Errorf("waiting for db: %w (last ping error: %v)", ctx.Err(), lastErr)
 		case <-ticker.C:
-			pingCtx, cancelPing := context.WithTimeout(context.Background(), time.Second)
+			pingCtx, cancelPing := context.WithTimeout(ctx, time.Second)
 			lastErr = pool.Ping(pingCtx)
 			cancelPing()
 

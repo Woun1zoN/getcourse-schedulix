@@ -51,6 +51,7 @@ func main() {
 
 	// Database migrations
 	if err := migrations.Run(
+		ctx,
 		databaseURL,
 		"file:///app/internal/database/migrations/sql",
 	); err != nil {
@@ -71,6 +72,7 @@ func main() {
 	}
 
 	redisClient, err := storage.NewRedisClient(
+		ctx,
 		redisAddr,
 		redisPassword,
 		redisDB,
