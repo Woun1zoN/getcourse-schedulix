@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"slices"
 	"strings"
 
 	"github.com/Woun1zoN/getcourse-schedulix/internal/getcourse"
@@ -159,14 +160,13 @@ func (h *Handler) handleCookieInput(ctx context.Context, u *user.User, message *
 		return h.client.SendMessage(message.Chat.ID, "Не удалось получить список тренингов, попробуйте позже.")
 	}
 
-	if u.GetCourseStreamID != nil {
+	if len(u.GetCourseStreamIDs) > 0 {
 		for _, s := range streams {
-			if s.ID == *u.GetCourseStreamID {
+			if slices.Contains(u.GetCourseStreamIDs, s.ID) {
 				text, kb, err := h.connectedMenu(ctx, message.From.ID)
 				if err != nil {
 					return fmt.Errorf("connected menu: %w", err)
 				}
-
 				return h.client.SendMessageWithKeyboardMode(message.Chat.ID, text, botapi.ParseModeMarkdownV2, kb)
 			}
 		}
@@ -176,7 +176,7 @@ func (h *Handler) handleCookieInput(ctx context.Context, u *user.User, message *
 		return err
 	}
 
-	return h.sendStreamPicker(message.Chat.ID, streams)
+	return h.sendStreamPicker(ctx, message.Chat.ID, streams, u.GetCourseStreamIDs, StreamPickerInitial)
 }
 
 func (h *Handler) handlePickStream(ctx context.Context, cq *botapi.CallbackQuery) error {
@@ -196,7 +196,7 @@ func (h *Handler) handlePickStream(ctx context.Context, cq *botapi.CallbackQuery
 		return h.client.SendMessage(cq.From.ID, "Не удалось получить список тренингов, попробуйте позже.")
 	}
 
-	return h.sendStreamPicker(cq.From.ID, streams)
+	return h.sendStreamPicker(ctx, cq.From.ID, streams, u.GetCourseStreamIDs, StreamPickerChange)
 }
 
 func (h *Handler) handleChatShared(ctx context.Context, message *botapi.Message) error {

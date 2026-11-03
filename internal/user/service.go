@@ -81,8 +81,8 @@ func (s *Service) GetActive(ctx context.Context) ([]User, error) {
 	return users, nil
 }
 
-func (s *Service) SelectStream(ctx context.Context, telegramID, streamID int64) error {
-	return s.repository.UpdateStream(ctx, telegramID, streamID)
+func (s *Service) SelectStreams(ctx context.Context, telegramID int64, streamIDs []int64) error {
+	return s.repository.UpdateStreams(ctx, telegramID, streamIDs)
 }
 
 func (s *Service) SelectTargetChat(ctx context.Context, telegramID int64, chatID int64, title string) error {

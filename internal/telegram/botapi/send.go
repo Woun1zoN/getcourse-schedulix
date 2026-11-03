@@ -230,3 +230,34 @@ func (c *Client) DeleteMessage(chatID int64, messageID int) error {
 
 	return nil
 }
+
+func (c *Client) EditMessageReplyMarkup(chatID int64, messageID int, kb *InlineKeyboardMarkup) error {
+	payload := struct {
+		ChatID      int64                 `json:"chat_id"`
+		MessageID   int                   `json:"message_id"`
+		ReplyMarkup *InlineKeyboardMarkup `json:"reply_markup"`
+	}{chatID, messageID, kb}
+
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.client.Post(
+		fmt.Sprintf("https://api.telegram.org/bot%s/editMessageReplyMarkup", c.token),
+		"application/json", bytes.NewReader(data),
+	)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var result response
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return fmt.Errorf("telegram: decode response: %w", err)
+	}
+	if !result.OK {
+		return fmt.Errorf("telegram: editMessageReplyMarkup: %s", result.Description)
+	}
+	return nil
+}

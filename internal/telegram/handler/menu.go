@@ -23,10 +23,12 @@ func (h *Handler) connectedMenu(ctx context.Context, telegramID int64) (string, 
 func (h *Handler) renderConnectedMenu(ctx context.Context, u *user.User) (string, *botapi.InlineKeyboardMarkup) {
 	var text string
 
+	noStreams := len(u.GetCourseStreamIDs) == 0
+
 	switch {
-	case u.GetCourseStreamID == nil && u.TargetChatID == nil:
+	case noStreams && u.TargetChatID == nil:
 		text += "\n\n❗ Пока тренинг и чат не выбраны, материалы приходить не будут\\."
-	case u.GetCourseStreamID == nil:
+	case noStreams:
 		text += "\n\n❗ Пока тренинг не выбран, материалы приходить не будут\\."
 	case u.TargetChatID == nil:
 		text += "\n\n❗ Пока чат не выбран, материалы приходить не будут\\."
@@ -34,25 +36,30 @@ func (h *Handler) renderConnectedMenu(ctx context.Context, u *user.User) (string
 		text += "\n\n✅ GetCourse подключён, новые материалы будут приходить автоматически\\."
 	}
 
-	text += "\n\n• Выбранный тренинг:\n"
-
-	if u.GetCourseStreamID == nil {
-		text += "➖ Не выбран"
+	if noStreams {
+		text += "\n\n• Выбранный тренинг:\n➖ Не выбран"
 	} else {
-		s, err := h.currentStream(ctx, u)
+		streams, err := h.currentStreams(ctx, u)
 
 		switch {
 		case err != nil:
-			log.Printf("telegram: current stream for user %d: %v", u.TelegramID, err)
-			text += fmt.Sprintf("⚠️ Не удалось загрузить название \\(ID %d\\)", *u.GetCourseStreamID)
+			log.Printf("telegram: current streams for user %d: %v", u.TelegramID, err)
+			text += "\n\n• Выбранные тренинги:\n⚠️ Не удалось загрузить названия"
 
-		case s == nil:
-			text += fmt.Sprintf("⚠️ Тренинг \\(ID %d\\) больше не найден\\. Выберите другой\\.", *u.GetCourseStreamID)
+		case len(streams) == 0:
+			text += "\n\n• Выбранные тренинги:\n⚠️ Выбранные тренинги больше не найдены\\. Выберите другие\\."
 
 		default:
-			text += "📚 *" + escapeMarkdownV2(s.Name) + "*"
-			if info := s.Info(); info != "" {
-				text += "\n" + escapeMarkdownV2(info)
+			if len(streams) == 1 {
+				text += "\n\n• Выбранный тренинг:"
+			} else {
+				text += "\n\n• Выбранные тренинги:"
+			}
+			for _, s := range streams {
+				text += "\n📚 *" + escapeMarkdownV2(s.Name) + "*"
+				if info := s.Info(); info != "" {
+					text += "\n" + escapeMarkdownV2(info)
+				}
 			}
 		}
 	}
@@ -74,7 +81,7 @@ func (h *Handler) renderConnectedMenu(ctx context.Context, u *user.User) (string
 	text += "\n\nℹ️ /help — Список доступных команд"
 
 	streamBtnText := "🔀 Сменить тренинг"
-	if u.GetCourseStreamID == nil {
+	if noStreams {
 		streamBtnText = "📚 Выбрать тренинг"
 	}
 
@@ -148,7 +155,7 @@ func (h *Handler) startKeyboard(u *user.User) *botapi.InlineKeyboardMarkup {
 	var setupBtn *botapi.InlineKeyboardButton
 
 	switch {
-	case u.GetCourseStreamID == nil:
+	case len(u.GetCourseStreamIDs) == 0:
 		setupBtn = &botapi.InlineKeyboardButton{Text: "📚 Выбрать тренинг", CallbackData: callbackPickStream}
 	case u.TargetChatID == nil:
 		setupBtn = &botapi.InlineKeyboardButton{Text: "💬 Выбрать чат", CallbackData: callbackPickChat}

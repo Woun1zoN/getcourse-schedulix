@@ -23,8 +23,11 @@ func (h *Handler) handleCallbackQuery(ctx context.Context, cq *botapi.CallbackQu
 	_ = h.client.AnswerCallbackQuery(cq.ID)
 
 	switch {
+	case cq.Data == callbackStreamsDone:
+		return h.handleStreamsDone(ctx, cq)
+
 	case strings.HasPrefix(cq.Data, callbackStreamPrefix):
-		return h.handleStreamSelected(ctx, cq)
+		return h.handleStreamToggle(ctx, cq)
 
 	case cq.Data == callbackPickStream:
 		return h.handlePickStream(ctx, cq)
@@ -69,6 +72,8 @@ func (h *Handler) handleCallbackQuery(ctx context.Context, cq *botapi.CallbackQu
 }
 
 func (h *Handler) handleCancel(ctx context.Context, cq *botapi.CallbackQuery) error {
+	_ = h.sessionStore.DeleteStreamDraft(ctx, cq.From.ID)
+
 	if err := h.sessionStore.ClearState(ctx, cq.From.ID); err != nil {
 		return fmt.Errorf("clear session state: %w", err)
 	}
@@ -106,6 +111,8 @@ func (h *Handler) handleCancel(ctx context.Context, cq *botapi.CallbackQuery) er
 }
 
 func (h *Handler) handleSkipStream(ctx context.Context, cq *botapi.CallbackQuery) error {
+	_ = h.sessionStore.DeleteStreamDraft(ctx, cq.From.ID)
+
 	if err := h.userService.ClearStream(ctx, cq.From.ID); err != nil {
 		return fmt.Errorf("clear stream: %w", err)
 	}

@@ -8,6 +8,8 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+const streamDraftTTL = 30 * time.Minute
+
 type SessionStore struct {
 	rdb *redis.Client
 }
@@ -69,6 +71,25 @@ func (s *SessionStore) ClearStreamMissingNotified(ctx context.Context, telegramI
 	return s.rdb.Del(ctx, staleStreamKey(telegramID, streamID)).Err()
 }
 
+func (s *SessionStore) SetStreamDraft(ctx context.Context, telegramID int64, data []byte) error {
+	return s.rdb.Set(ctx, streamDraftKey(telegramID), data, streamDraftTTL).Err()
+}
+
+func (s *SessionStore) GetStreamDraft(ctx context.Context, telegramID int64) ([]byte, bool, error) {
+	data, err := s.rdb.Get(ctx, streamDraftKey(telegramID)).Bytes()
+	if err == redis.Nil {
+		return nil, false, nil
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	return data, true, nil
+}
+
+func (s *SessionStore) DeleteStreamDraft(ctx context.Context, telegramID int64) error {
+	return s.rdb.Del(ctx, streamDraftKey(telegramID)).Err()
+}
+
 func cookiePromptKey(telegramID int64) string {
 	return fmt.Sprintf("cookie_prompt:%d", telegramID)
 }
@@ -87,4 +108,8 @@ func key(telegramID int64) string {
 
 func staleStreamKey(telegramID, streamID int64) string {
 	return fmt.Sprintf("stream_missing_notified:%d:%d", telegramID, streamID)
+}
+
+func streamDraftKey(telegramID int64) string {
+	return fmt.Sprintf("stream_draft:%d", telegramID)
 }

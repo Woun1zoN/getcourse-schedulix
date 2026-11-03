@@ -67,12 +67,14 @@ var helpText = `*📖 Доступные команды*
 func startCommandText(u *user.User) string {
 	var status string
 
+	noStreams := len(u.GetCourseStreamIDs) == 0
+
 	switch {
 	case u.GetCourseCookie == nil:
 		status = "❗ Статус: GetCourse не подключён\\."
-	case u.GetCourseStreamID == nil && u.TargetChatID == nil:
+	case noStreams && u.TargetChatID == nil:
 		status = "❗ Статус: тренинг и чат не выбраны, материалы приходить не будут\\."
-	case u.GetCourseStreamID == nil:
+	case noStreams:
 		status = "❗ Статус: тренинг не выбран, материалы приходить не будут\\."
 	case u.TargetChatID == nil:
 		status = "❗ Статус: чат не выбран, материалы приходить не будут\\."

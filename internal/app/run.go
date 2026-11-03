@@ -72,29 +72,35 @@ func (r *Runner) tick(ctx context.Context) {
 			return
 		}
 
-		if u.GetCourseStreamID == nil || u.TargetChatID == nil {
+		if len(u.GetCourseStreamIDs) == 0 || u.TargetChatID == nil {
 			continue
 		}
 
 		client := r.baseClient.WithCookies(*u.GetCourseCookie)
 		state := storage.NewRedisState(r.redisClient, storage.HashesKey(u.ID))
 
-		err := InitApp(ctx, u.TelegramID, *u.TargetChatID, *u.GetCourseStreamID, client, state, r.telegramClient, r.notifyMaterial)
-		if err == nil {
-			continue
-		}
+		for _, streamID := range u.GetCourseStreamIDs {
+			if ctx.Err() != nil {
+				return
+			}
 
-		if errors.Is(err, getcourse.ErrCookieExpired) {
-			r.handleExpiredCookie(ctx, u)
-			continue
-		}
+			err := InitApp(ctx, u.TelegramID, *u.TargetChatID, streamID, client, state, r.telegramClient, r.notifyMaterial)
+			if err == nil {
+				continue
+			}
 
-		if errors.Is(err, getcourse.ErrStreamNotFound) {
-			r.handleMissingStream(ctx, u)
-			continue
-		}
+			if errors.Is(err, getcourse.ErrCookieExpired) {
+				r.handleExpiredCookie(ctx, u)
+				break
+			}
 
-		log.Printf("user %d: %v", u.ID, err)
+			if errors.Is(err, getcourse.ErrStreamNotFound) {
+				r.handleMissingStream(ctx, u, streamID)
+				continue
+			}
+
+			log.Printf("user %d stream %d: %v", u.ID, streamID, err)
+		}
 	}
 }
 
@@ -114,8 +120,8 @@ func (r *Runner) handleExpiredCookie(ctx context.Context, u user.User) {
 	}
 }
 
-func (r *Runner) handleMissingStream(ctx context.Context, u user.User) {
-	first, err := r.sessionStore.MarkStreamMissingNotified(ctx, u.TelegramID, *u.GetCourseStreamID)
+func (r *Runner) handleMissingStream(ctx context.Context, u user.User, streamID int64) {
+	first, err := r.sessionStore.MarkStreamMissingNotified(ctx, u.TelegramID, streamID)
 	if err != nil {
 		log.Printf("user %d: mark stream missing notified: %v", u.ID, err)
 		return
@@ -126,7 +132,7 @@ func (r *Runner) handleMissingStream(ctx context.Context, u user.User) {
 
 	if err := r.notifyMissingStream(u.TelegramID); err != nil {
 		log.Printf("user %d: send missing stream notice: %v", u.ID, err)
-		_ = r.sessionStore.ClearStreamMissingNotified(ctx, u.TelegramID, *u.GetCourseStreamID)
+		_ = r.sessionStore.ClearStreamMissingNotified(ctx, u.TelegramID, streamID)
 	}
 }
 
