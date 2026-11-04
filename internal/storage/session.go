@@ -90,6 +90,22 @@ func (s *SessionStore) DeleteStreamDraft(ctx context.Context, telegramID int64) 
 	return s.rdb.Del(ctx, streamDraftKey(telegramID)).Err()
 }
 
+func (s *SessionStore) GetMenuMessage(ctx context.Context, telegramID int64) (int, error) {
+	val, err := s.rdb.Get(ctx, menuMessageKey(telegramID)).Int()
+	if err == redis.Nil {
+		return 0, nil
+	}
+	return val, err
+}
+
+func (s *SessionStore) SetMenuMessage(ctx context.Context, telegramID int64, messageID int) error {
+	return s.rdb.Set(ctx, menuMessageKey(telegramID), messageID, 0).Err()
+}
+
+func (s *SessionStore) ClearMenuMessage(ctx context.Context, telegramID int64) error {
+	return s.rdb.Del(ctx, menuMessageKey(telegramID)).Err()
+}
+
 func cookiePromptKey(telegramID int64) string {
 	return fmt.Sprintf("cookie_prompt:%d", telegramID)
 }
@@ -112,4 +128,8 @@ func staleStreamKey(telegramID, streamID int64) string {
 
 func streamDraftKey(telegramID int64) string {
 	return fmt.Sprintf("stream_draft:%d", telegramID)
+}
+
+func menuMessageKey(telegramID int64) string {
+	return fmt.Sprintf("menu_message:%d", telegramID)
 }

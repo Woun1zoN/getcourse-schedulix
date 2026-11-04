@@ -38,7 +38,7 @@ func (h *Handler) handleMessage(ctx context.Context, message *botapi.Message) er
 			slog.Int64("telegram_id", message.From.ID),
 		)
 
-		return h.sendStartScreen(message.Chat.ID, u)
+		return h.sendStartScreen(ctx, message.Chat.ID, u)
 	}
 
 	if message.Text == "/help" {
@@ -91,7 +91,7 @@ func (h *Handler) handleMessage(ctx context.Context, message *botapi.Message) er
 			return fmt.Errorf("connected menu: %w", err)
 		}
 
-		return h.client.SendMessageWithKeyboardMode(message.Chat.ID, text, botapi.ParseModeMarkdownV2, kb)
+		return h.sendMenuMessage(ctx, message.Chat.ID, message.From.ID, text, kb)
 	}
 
 	if message.Text == "➡ Пропустить" || message.Text == "➖ Без чата" {
@@ -108,7 +108,7 @@ func (h *Handler) handleMessage(ctx context.Context, message *botapi.Message) er
 			return fmt.Errorf("connected menu: %w", err)
 		}
 
-		return h.client.SendMessageWithKeyboardMode(message.Chat.ID, text, botapi.ParseModeMarkdownV2, kb)
+		return h.sendMenuMessage(ctx, message.Chat.ID, message.From.ID, text, kb)
 	}
 
 	awaiting, err := h.sessionStore.IsAwaitingCookie(ctx, message.From.ID)
@@ -167,7 +167,7 @@ func (h *Handler) handleCookieInput(ctx context.Context, u *user.User, message *
 				if err != nil {
 					return fmt.Errorf("connected menu: %w", err)
 				}
-				return h.client.SendMessageWithKeyboardMode(message.Chat.ID, text, botapi.ParseModeMarkdownV2, kb)
+				return h.sendMenuMessage(ctx, message.Chat.ID, message.From.ID, text, kb)
 			}
 		}
 	}
@@ -224,5 +224,5 @@ func (h *Handler) handleChatShared(ctx context.Context, message *botapi.Message)
 		return fmt.Errorf("connected menu: %w", err)
 	}
 
-	return h.client.SendMessageWithKeyboardMode(message.Chat.ID, text, botapi.ParseModeMarkdownV2, kb)
+	return h.sendMenuMessage(ctx, message.Chat.ID, message.From.ID, text, kb)
 }

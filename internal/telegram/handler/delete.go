@@ -47,6 +47,13 @@ func (h *Handler) handleDeleteConfirm(ctx context.Context, cq *botapi.CallbackQu
 		return fmt.Errorf("delete redis hashes: %w", err)
 	}
 
+	if oldID, err := h.sessionStore.GetMenuMessage(ctx, u.TelegramID); err == nil && oldID != 0 {
+		h.cleanupMessage(chatID, oldID)
+	}
+	if err := h.sessionStore.ClearMenuMessage(ctx, u.TelegramID); err != nil {
+		return fmt.Errorf("clear menu message: %w", err)
+	}
+
 	if err := h.userService.Delete(ctx, cq.From.ID); err != nil {
 		return fmt.Errorf("delete user: %w", err)
 	}

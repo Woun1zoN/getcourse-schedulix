@@ -88,7 +88,7 @@ func (h *Handler) handleCancel(ctx context.Context, cq *botapi.CallbackQuery) er
 	if u.GetCourseCookie != nil {
 		text, kb := h.renderConnectedMenu(ctx, u)
 
-		if err := h.client.SendMessageWithKeyboardMode(chatID, text, botapi.ParseModeMarkdownV2, kb); err != nil {
+		if err := h.sendMenuMessage(ctx, chatID, cq.From.ID, text, kb); err != nil {
 			return err
 		}
 
@@ -102,7 +102,7 @@ func (h *Handler) handleCancel(ctx context.Context, cq *botapi.CallbackQuery) er
 		},
 	}
 
-	if err := h.client.SendMessageWithKeyboardMode(chatID, welcomeText, botapi.ParseModeMarkdownV2, kb); err != nil {
+	if err := h.sendMenuMessage(ctx, chatID, cq.From.ID, welcomeText, kb); err != nil {
 		return err
 	}
 
@@ -127,7 +127,7 @@ func (h *Handler) handleSkipStream(ctx context.Context, cq *botapi.CallbackQuery
 	}
 
 	text, kb := h.renderConnectedMenu(ctx, u)
-	return h.client.SendMessageWithKeyboardMode(cq.From.ID, text, botapi.ParseModeMarkdownV2, kb)
+	return h.sendMenuMessage(ctx, cq.From.ID, cq.From.ID, text, kb)
 }
 
 func cancelKeyboard() *botapi.InlineKeyboardMarkup {

@@ -201,7 +201,7 @@ func (h *Handler) handleStreamsDone(ctx context.Context, cq *botapi.CallbackQuer
 	}
 
 	text, kb := h.renderConnectedMenu(ctx, u)
-	if err := h.client.SendMessageWithKeyboardMode(cq.From.ID, text, botapi.ParseModeMarkdownV2, kb); err != nil {
+	if err := h.sendMenuMessage(ctx, cq.From.ID, cq.From.ID, text, kb); err != nil {
 		return err
 	}
 

@@ -113,15 +113,15 @@ func (h *Handler) renderConnectedMenu(ctx context.Context, u *user.User) (string
 	return text, kb
 }
 
-func (h *Handler) sendStartScreen(chatID int64, u *user.User) error {
+func (h *Handler) sendStartScreen(ctx context.Context, chatID int64, u *user.User) error {
 	if u.GetCourseCookie == nil {
 		kb := &botapi.InlineKeyboardMarkup{InlineKeyboard: [][]botapi.InlineKeyboardButton{
 			{{Text: "🔗 Подключить GetCourse", CallbackData: callbackConnectGetCourse}},
 		}}
-		return h.client.SendMessageWithKeyboardMode(chatID, welcomeText, botapi.ParseModeMarkdownV2, kb)
+		return h.sendMenuMessage(ctx, chatID, u.TelegramID, welcomeText, kb)
 	}
 
-	return h.client.SendMessageWithKeyboardMode(chatID, startCommandText(u), botapi.ParseModeMarkdownV2, h.startKeyboard(u))
+	return h.sendMenuMessage(ctx, chatID, u.TelegramID, startCommandText(u), h.startKeyboard(u))
 }
 
 func (h *Handler) sendHelp(chatID int64) error {
@@ -147,11 +147,11 @@ func (h *Handler) sendMenu(ctx context.Context, chatID, telegramID int64) error 
 		kb := &botapi.InlineKeyboardMarkup{InlineKeyboard: [][]botapi.InlineKeyboardButton{
 			{{Text: "🔗 Подключить GetCourse", CallbackData: callbackConnectGetCourse}},
 		}}
-		return h.client.SendMessageWithKeyboardMode(chatID, welcomeText, botapi.ParseModeMarkdownV2, kb)
+		return h.sendMenuMessage(ctx, chatID, telegramID, welcomeText, kb)
 	}
 
 	text, kb := h.renderConnectedMenu(ctx, u)
-	return h.client.SendMessageWithKeyboardMode(chatID, text, botapi.ParseModeMarkdownV2, kb)
+	return h.sendMenuMessage(ctx, chatID, telegramID, text, kb)
 }
 
 func (h *Handler) startKeyboard(u *user.User) *botapi.InlineKeyboardMarkup {
@@ -178,4 +178,26 @@ func (h *Handler) startKeyboard(u *user.User) *botapi.InlineKeyboardMarkup {
 	}
 
 	return &botapi.InlineKeyboardMarkup{InlineKeyboard: rows}
+}
+
+func (h *Handler) sendMenuMessage(ctx context.Context, chatID, telegramID int64, text string, kb *botapi.InlineKeyboardMarkup) error {
+	oldID, err := h.sessionStore.GetMenuMessage(ctx, telegramID)
+	if err != nil {
+		log.Printf("telegram: get menu message: %v", err)
+	}
+
+	newID, err := h.client.SendMessageWithKeyboardModeID(chatID, text, botapi.ParseModeMarkdownV2, kb)
+	if err != nil {
+		return err
+	}
+
+	if oldID != 0 && oldID != newID {
+		h.cleanupMessage(chatID, oldID)
+	}
+
+	if err := h.sessionStore.SetMenuMessage(ctx, telegramID, newID); err != nil {
+		log.Printf("telegram: save menu message: %v", err)
+	}
+
+	return nil
 }
