@@ -55,8 +55,13 @@ func (h *Handler) renderConnectedMenu(ctx context.Context, u *user.User) (string
 			} else {
 				text += "\n\n• Выбранные тренинги:"
 			}
-			for _, s := range streams {
-				text += "\n📚 *" + escapeMarkdownV2(s.Name) + "*"
+			for i, s := range streams {
+				prefix := ""
+				if len(streams) > 1 {
+					prefix = fmt.Sprintf("%d\\. ", i+1)
+				}
+
+				text += fmt.Sprintf("\n%s📚 *%s*", prefix, escapeMarkdownV2(s.Name))
 				if info := s.Info(); info != "" {
 					text += "\n" + escapeMarkdownV2(info)
 				}
