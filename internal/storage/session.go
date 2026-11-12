@@ -2,13 +2,9 @@ package storage
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	"github.com/redis/go-redis/v9"
 )
-
-const streamDraftTTL = 30 * time.Minute
 
 type SessionStore struct {
 	rdb *redis.Client
@@ -18,14 +14,12 @@ func NewSessionStore(rdb *redis.Client) *SessionStore {
 	return &SessionStore{rdb: rdb}
 }
 
-const awaitingCookieTTL = 10 * time.Minute
-
 func (s *SessionStore) SetAwaitingCookie(ctx context.Context, telegramID int64) error {
-	return s.rdb.Set(ctx, key(telegramID), "awaiting_cookie", awaitingCookieTTL).Err()
+	return s.rdb.Set(ctx, sessionKey(telegramID), "awaiting_cookie", awaitingCookieTTL).Err()
 }
 
 func (s *SessionStore) IsAwaitingCookie(ctx context.Context, telegramID int64) (bool, error) {
-	val, err := s.rdb.Get(ctx, key(telegramID)).Result()
+	val, err := s.rdb.Get(ctx, sessionKey(telegramID)).Result()
 	if err == redis.Nil {
 		return false, nil
 	}
@@ -36,7 +30,7 @@ func (s *SessionStore) IsAwaitingCookie(ctx context.Context, telegramID int64) (
 }
 
 func (s *SessionStore) ClearState(ctx context.Context, telegramID int64) error {
-	return s.rdb.Del(ctx, key(telegramID)).Err()
+	return s.rdb.Del(ctx, sessionKey(telegramID)).Err()
 }
 
 func (s *SessionStore) DeleteHashes(ctx context.Context, userID int64) error {
@@ -104,32 +98,4 @@ func (s *SessionStore) SetMenuMessage(ctx context.Context, telegramID int64, mes
 
 func (s *SessionStore) ClearMenuMessage(ctx context.Context, telegramID int64) error {
 	return s.rdb.Del(ctx, menuMessageKey(telegramID)).Err()
-}
-
-func cookiePromptKey(telegramID int64) string {
-	return fmt.Sprintf("cookie_prompt:%d", telegramID)
-}
-
-func expiredKey(telegramID int64) string {
-	return fmt.Sprintf("cookie_expired_notified:%d", telegramID)
-}
-
-func HashesKey(userID int64) string {
-	return fmt.Sprintf("docs:hashes:%d", userID)
-}
-
-func key(telegramID int64) string {
-	return fmt.Sprintf("session:%d", telegramID)
-}
-
-func staleStreamKey(telegramID, streamID int64) string {
-	return fmt.Sprintf("stream_missing_notified:%d:%d", telegramID, streamID)
-}
-
-func streamDraftKey(telegramID int64) string {
-	return fmt.Sprintf("stream_draft:%d", telegramID)
-}
-
-func menuMessageKey(telegramID int64) string {
-	return fmt.Sprintf("menu_message:%d", telegramID)
 }
