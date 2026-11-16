@@ -80,24 +80,23 @@ func (d *streamDraft) keyboard() *botapi.InlineKeyboardMarkup {
 		}
 	}
 
+	cancelRow := []botapi.InlineKeyboardButton{
+		{Text: "Отмена", CallbackData: callbackCancel, Style: "danger"},
+	}
+
 	if d.Touched || len(d.Selected) > 0 {
-		rows = append(rows,
-			[]botapi.InlineKeyboardButton{
-				{Text: "Готово", CallbackData: callbackStreamsDone, Style: "success"},
-			},
-			[]botapi.InlineKeyboardButton{
-				{Text: "Отмена", CallbackData: callbackCancel, Style: "danger"},
-			},
-		)
-	} else {
-		if d.Mode == StreamPickerInitial {
-			rows = append(rows, []botapi.InlineKeyboardButton{
-				{Text: "Пропустить", CallbackData: callbackSkipStream, Style: "primary"},
-			})
-		}
 		rows = append(rows, []botapi.InlineKeyboardButton{
-			{Text: "Отмена", CallbackData: callbackCancel, Style: "danger"},
+			{Text: "Готово", CallbackData: callbackStreamsDone, Style: "success"},
 		})
+		if d.Mode == StreamPickerChange {
+			rows = append(rows, cancelRow)
+		}
+	} else if d.Mode == StreamPickerInitial {
+		rows = append(rows, []botapi.InlineKeyboardButton{
+			{Text: "Пропустить", CallbackData: callbackSkipStream, Style: "primary"},
+		})
+	} else {
+		rows = append(rows, cancelRow)
 	}
 
 	return &botapi.InlineKeyboardMarkup{InlineKeyboard: rows}

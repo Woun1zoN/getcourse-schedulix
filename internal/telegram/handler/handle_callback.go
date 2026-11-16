@@ -123,11 +123,20 @@ func (h *Handler) handleSkipStream(ctx context.Context, cq *botapi.CallbackQuery
 	}
 
 	if u.TargetChatID == nil {
-		return h.sendChatPicker(cq.From.ID, ChatPickerInitial)
+		if err := h.sendChatPicker(cq.From.ID, ChatPickerInitial); err != nil {
+			return err
+		}
+		h.cleanupMessage(cq.Message.Chat.ID, cq.Message.MessageID)
+		return nil
 	}
 
 	text, kb := h.renderConnectedMenu(ctx, u)
-	return h.sendMenuMessage(ctx, cq.From.ID, cq.From.ID, text, kb)
+	if err := h.sendMenuMessage(ctx, cq.From.ID, cq.From.ID, text, kb); err != nil {
+		return err
+	}
+
+	h.cleanupMessage(cq.Message.Chat.ID, cq.Message.MessageID)
+	return nil
 }
 
 func cancelKeyboard() *botapi.InlineKeyboardMarkup {
