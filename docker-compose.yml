@@ -21,6 +21,7 @@ services:
     command: redis-server --appendonly yes
 
   getcourse-schedulix:
+    image: getcourse-schedulix:latest
     build: .
     container_name: getcourse-schedulix
     restart: unless-stopped
